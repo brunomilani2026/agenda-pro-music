@@ -227,29 +227,6 @@ export default function ConfigPage() {
             <>
               <TeacherInstrumentsManager />
 
-              <div className="bg-gray-800/40 p-6 rounded-3xl border border-gray-700/50 space-y-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-amber-500" /> Plano e Assinatura
-                </h3>
-                {teacherProfile?.ispremium ? (
-                  <div className="flex items-center justify-between bg-amber-500/10 p-4 rounded-2xl border border-amber-500/20">
-                    <div>
-                      <p className="text-amber-500 font-black text-sm uppercase tracking-widest">Plano Premium</p>
-                      <p className="text-amber-400/60 text-xs mt-0.5">Acesso ilimitado a todas as funções</p>
-                    </div>
-                    <span className="bg-amber-500 text-gray-900 text-[10px] font-black px-2 py-1 rounded-md">ATIVO</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between bg-gray-700/30 p-4 rounded-2xl border border-gray-600/30">
-                    <div>
-                      <p className="text-gray-200 font-black text-sm uppercase tracking-widest">Plano Grátis</p>
-                      <p className="text-gray-400/80 text-xs mt-0.5">Faça upgrade para liberar todas as funções</p>
-                    </div>
-                    <span className="bg-gray-600 text-gray-200 text-[10px] font-black px-2 py-1 rounded-md">ATIVO</span>
-                  </div>
-                )}
-              </div>
-
               <CreditPackagesManager />
             </>
           )}

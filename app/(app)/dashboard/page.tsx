@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useAppContext } from "../AppContext";
 import Link from "next/link";
 import { formatName, getLocalISODate } from "@/lib/utils";
-import PremiumUpgradeBanner from "@/components/layout/PremiumUpgradeBanner";
 
 export default function DashboardPage() {
   const { lessons, payments, teacherProfile, pendingRequestsCount, refreshPayments } = useAppContext();
@@ -145,10 +144,6 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col w-full text-gray-100 bg-gray-900 p-4 md:p-8 rounded-tl-2xl space-y-8 animate-fade-in">
-      {teacherProfile && !teacherProfile.ispremium && (
-        <PremiumUpgradeBanner />
-      )}
-
       {/* HERO SECTION */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 via-amber-400 to-amber-300 p-8 sm:p-10 shadow-2xl shadow-amber-500/10 text-gray-900 border border-amber-300">
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">

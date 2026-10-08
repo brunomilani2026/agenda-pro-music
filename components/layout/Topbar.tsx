@@ -174,7 +174,7 @@ export default function Topbar({
                       <>
                         <Star className="w-2 h-2 text-amber-500 fill-amber-500" />
                         <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">
-                          {user?.ispremium ? 'Plano Premium' : 'Plano Grátis'}
+                          Professor
                         </span>
                       </>
                     )}

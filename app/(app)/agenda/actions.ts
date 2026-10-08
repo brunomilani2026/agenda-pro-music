@@ -114,11 +114,6 @@ export async function createAgendaStudent(studentData: any): Promise<{ success: 
       return { success: false, error: "O telefone informado é inválido." };
     }
 
-    const alunosCount = await StudentService.getStudentCountByUser(dbUser.idusers);
-    if (!dbUser.ispremium && alunosCount >= 2) {
-      return { success: false, error: 'Plano gratuito permite apenas 2 alunos. Faça upgrade para adicionar mais.' };
-    }
-
     let asaasCustomerId = null;
     if (process.env.ASAAS_API_KEY && studentData.email && studentData.cpf) {
       try {

@@ -307,7 +307,7 @@ export default function Sidebar({ open, onClose, user, isCollapsed = false }: Si
                   <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
                     <p className="text-sm font-bold text-white truncate">{displayName}</p>
                     <p className="text-[10px] text-amber-500/80 truncate font-black uppercase tracking-widest">
-                      {user?.usertype === 'admin' ? 'Administrador' : (teacherProfile?.ispremium ? 'Plano Premium' : 'Plano Grátis')}
+                      {user?.usertype === 'admin' ? 'Administrador' : 'Professor'}
                     </p>
                   </div>
                 )}
