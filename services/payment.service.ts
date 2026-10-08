@@ -3,6 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { Payment } from '@/types/database.types';
 import { LessonService } from '@/services/lesson.service';
 import { AsaasClient, methodToBillingType, packageTypeToCycle } from '@/lib/asaas';
+import { gerarPixEstatico, pixConfigurado, txidDoPagamento } from '@/lib/pix';
 import { emailStudent, emailTeacher } from '@/lib/notify-email';
 import { afterResponse } from '@/lib/after-response';
 import { getLocalISODate, addMonthsKeepDay, projectNextMensalidadeDue, normalizePaymentMethod, nowInSaoPaulo } from '@/lib/utils';
@@ -96,6 +97,23 @@ export class PaymentService {
     if (error) {
       console.error('Error creating payment:', error.message);
       return null;
+    }
+
+    // Pix estático: toda cobrança nasce com QR Code e "copia e cola" próprios
+    // (sem Asaas). Falha aqui não derruba a criação do pagamento.
+    if (data && !data.asaas_pix_payload && pixConfigurado() && Number(data.amount) > 0) {
+      try {
+        const pix = await gerarPixEstatico({ valor: Number(data.amount), txid: txidDoPagamento(data.id) });
+        const { error: pixErr } = await supabase
+          .from('payment')
+          .update({ asaas_pix_payload: pix.payload, asaas_pix_qrcode: pix.qrcodeBase64 })
+          .eq('id', data.id);
+        if (pixErr) throw new Error(pixErr.message);
+        data.asaas_pix_payload = pix.payload;
+        data.asaas_pix_qrcode = pix.qrcodeBase64;
+      } catch (e: any) {
+        console.error('Pix estático não gerado para o pagamento', data.id, e?.message);
+      }
     }
     return data;
   }

@@ -847,8 +847,9 @@ export async function registerCreditPurchase(packageId: string) {
       success: true,
       paymentId: payment.id,
       invoiceUrl: asaasInvoiceUrl || '',
-      pixQrcode: asaasPixQrcode || '',
-      pixPayload: asaasPixPayload || '',
+      // Pix estático nasce em PaymentService.createPayment; o que veio do Asaas tem prioridade.
+      pixQrcode: asaasPixQrcode || (payment as any).asaas_pix_qrcode || '',
+      pixPayload: asaasPixPayload || (payment as any).asaas_pix_payload || '',
       dueDate: dueDateStr,
       price,
       name,
