@@ -421,7 +421,7 @@ export default function FinanceiroPage() {
     const valor = `R$ ${Number(payment.amount || 0).toFixed(2)}`;
     const confirmed = window.confirm(
       `Excluir o lançamento de ${valor} de ${payment.studentName}?\n\n` +
-      `A cobrança será cancelada no Asaas e o aluno deixa de dever este valor. ` +
+      `O aluno deixa de dever este valor. ` +
       `O registro sai da lista, mas fica guardado em "mostrar cancelados".`
     );
     if (!confirmed) return;
@@ -435,8 +435,7 @@ export default function FinanceiroPage() {
       }
       setIsModalOpen(false);
       setFormData({});
-      // O warning (ex.: cobrança do Asaas não cancelada) precisa aparecer: é
-      // ação manual pendente para o professor.
+      // Se vier um aviso (ação manual pendente para o professor), ele precisa aparecer.
       showNotification(
         result.warning || `Lançamento de ${payment.studentName} excluído.`,
         result.warning ? 'error' : 'success'
@@ -730,7 +729,7 @@ export default function FinanceiroPage() {
               </div>
 
               <p className="text-xs text-gray-500 leading-relaxed">
-                O pagamento será marcado como <span className="text-emerald-400 font-bold">Recebido</span>, o aluno será notificado e, se houver uma cobrança em aberto no Asaas, ela será cancelada para evitar pagamento duplicado.
+                O pagamento será marcado como <span className="text-emerald-400 font-bold">Recebido</span>, o aluno será notificado e, se ele pagou um plano ou pacote, os créditos e o vencimento são atualizados.
               </p>
 
               <div className="pt-2 border-t border-gray-700 flex flex-col-reverse sm:flex-row justify-end gap-3">

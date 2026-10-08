@@ -70,7 +70,7 @@ export default function PremiumUpgradeBanner() {
           </div>
           <div className="flex items-center gap-4 group">
             <Check className="w-4 h-4 text-amber-500 group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] transition-all" />
-            <span className="font-light tracking-wide">Cobrança Asaas Automática</span>
+            <span className="font-light tracking-wide">Cobrança por Pix com QR Code</span>
           </div>
           <div className="flex items-center gap-4 group">
             <Check className="w-4 h-4 text-amber-500 group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] transition-all" />

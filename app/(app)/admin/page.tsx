@@ -461,9 +461,6 @@ function StudentsTab({ kpis }: { kpis: AdminKPIs }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <KPICard title="Alunos sem CPF" value={system.studentsWithoutCpf} subtitle="Cadastros incompletos"
             icon={<AlertCircle className="w-6 h-6" />} color="red" />
-          <KPICard title="Integração Asaas" value={pct(system.asaasIntegrationRate)}
-            subtitle={`${system.studentsWithAsaas}/${system.totalStudents} vinculados`}
-            icon={<Link2 className="w-6 h-6" />} color="emerald" />
           <KPICard title="Faturamento por Instrumento" value={brl(finance.revenueByInstrument[0]?.value || 0)}
             subtitle={finance.revenueByInstrument[0]?.label || 'Sem dados'}
             icon={<Music className="w-6 h-6" />} color="indigo" />
@@ -698,9 +695,6 @@ function LogsTab({ kpis }: { kpis: AdminKPIs }) {
           <KPICard title="Avisos Enviados" value={engagement.notificationsTotal}
             subtitle={`${pct(engagement.notificationReadRate)} lidos`}
             icon={<Bell className="w-6 h-6" />} color="emerald" />
-          <KPICard title="Integração Asaas" value={pct(system.asaasIntegrationRate)}
-            subtitle={`${system.studentsWithAsaas}/${system.totalStudents} vinculados`}
-            icon={<Link2 className="w-6 h-6" />} color="cyan" />
         </div>
       </section>
 
