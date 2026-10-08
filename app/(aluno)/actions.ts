@@ -924,7 +924,15 @@ export async function fetchAlunoPayments() {
   const student = await getSessionStudent();
   if (!student) return [];
 
-  const payments = await cachedPaymentsByStudent(student.idstudent);
+  const cached = await cachedPaymentsByStudent(student.idstudent);
+  // Rede de segurança do Pix estático: fatura aberta sem código (criada antes da
+  // configuração, por outro fluxo ou vinda de migração) ganha o Pix ao ser vista.
+  const payments = await Promise.all(cached.map(async (p) => {
+    if ((p.status !== 'pendente' && p.status !== 'vencido') || p.asaas_pix_payload) return p;
+    const copy: any = { ...p };
+    await PaymentService.attachStaticPix(createAdminClient(), copy);
+    return copy as typeof p;
+  }));
   return payments.map(p => ({
     id: p.id,
     amount: p.amount,
