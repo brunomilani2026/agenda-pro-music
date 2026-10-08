@@ -9,7 +9,7 @@ Este arquivo não tem senhas nem chaves. Marque `[x]` conforme for concluindo.
 ## 0. Decisões já tomadas
 
 - [x] **Asaas sai.** Não vamos configurar Asaas sandbox nem manter o Asaas no site novo.
-- [ ] **Pix direto para o banco do Bruno** substitui o Asaas (forma ainda a definir, ver seção 2).
+- [x] **Pix estático com confirmação manual** substitui o Asaas (decisão do Bruno: o Inter MEI não oferece API Pix com webhook). Ver seção 1.3.
 - [x] **Fotos de perfil continuam** como estão (Firebase Storage). Ver item 3.4 sobre quem é o dono do Firebase.
 - [x] **Alunos e professores não se cadastram de novo**: migramos contas (com as senhas) e todos os dados.
 - [x] Dados reais só entram no **ensaio** e na **troca final**, nunca antes (LGPD: nome, telefone, CPF de alunos).
@@ -42,8 +42,8 @@ Pontos do código que usam Asaas e precisam ser trocados:
 - colunas `asaas_*` no banco (podem ficar sem uso)
 
 Opções para o Pix (definir antes de codar):
-- [ ] **A. Pix estático (copia e cola / QR do próprio banco)** + **confirmação manual** pelo professor. Mais simples, sem custo, sem baixa automática.
-- [ ] **B. API Pix de um banco ou instituição de pagamento** (cobrança com baixa automática por webhook). Depende do banco do Bruno oferecer API Pix; exige certificado e cadastro.
+- [x] **A. ESCOLHIDA — Pix estático (copia e cola + QR)** com **confirmação manual** pelo professor. Sem custo, sem baixa automática.
+- [ ] (descartada por ora) **B. API Pix de um banco ou instituição de pagamento** (cobrança com baixa automática por webhook). Depende do banco do Bruno oferecer API Pix; exige certificado e cadastro.
 - [ ] Decidir também: o que fazer com **cobranças e assinaturas pendentes no Asaas** no dia da troca (deixar liquidar, cancelar ou refazer como Pix).
 
 ### 1.4 Tarefas automáticas
