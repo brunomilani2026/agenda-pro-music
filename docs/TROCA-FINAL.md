@@ -118,3 +118,23 @@ Fazer **no mesmo dia ou no seguinte**. O desenvolvedor (usuário GitHub `Ricardo
 - [ ] Trocar **todas** as chaves e senhas citadas neste arquivo; guardar num gerenciador de senhas.
 - [ ] Guardar backup final do banco antigo no Drive por pelo menos 90 dias.
 - [ ] Combinar com o desenvolvedor a entrega de documentação ou acessos que só ele tenha (se houver), **antes** de remover tudo.
+
+---
+
+## 4. DNS e e-mail do domínio (achados em 08/10/2026)
+
+Estado público de `agendapromusic.com.br`:
+- **NS:** `ns1.vercel-dns.com` / `ns2.vercel-dns.com` — a DNS está na **conta Vercel do site atual**.
+- **MX:** nenhum. Por isso a caixa `notificacoes@agendapromusic.com.br` (HostGator, webmail `sh00112.hostgator.com.br`) **não recebe nada**, nem respostas de alunos aos e-mails do sistema.
+- **TXT:** só `brevo-code:...` (conta Brevo existe; dono ainda desconhecido). Sem SPF, sem DMARC.
+- **CNAME `brevo1._domainkey` / `brevo2._domainkey`:** DKIM do Brevo — **não apagar**.
+- **`mail.agendapromusic.com.br`:** aponta para IP da Vercel (não serve como servidor de e-mail).
+- **EmailJS atual:** conta aberta em 23/06/2026 em nome de Bruno Milani com `notificacoes@agendapromusic.com.br`; recuperação de senha depende de a caixa voltar a receber.
+
+Tarefas:
+- [ ] Adicionar **1 registro MX** na DNS da Vercel (conta antiga): tipo MX, nome `@`, valor `sh00112.hostgator.com.br`, prioridade 0. Só adicionar; não editar nem apagar nenhum outro registro.
+- [ ] Testar recebimento (enviar do Gmail para `notificacoes@`), configurar encaminhamento no cPanel para o Gmail.
+- [ ] Recuperar a conta EmailJS antiga (ou manter a conta nova do Bruno e descartar a antiga).
+- [ ] Descobrir o dono da conta Brevo (recuperar senha por `notificacoes@` depois do MX) e decidir se mantém.
+- [ ] Depois da troca: adicionar SPF (incluindo o Brevo) e DMARC para melhorar a entrega.
+- [ ] Na troca final, o domínio passa do projeto antigo da Vercel para o novo (a DNS já está na Vercel, então não muda de provedor).
