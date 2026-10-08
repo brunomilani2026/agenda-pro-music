@@ -138,3 +138,17 @@ Tarefas:
 - [ ] Descobrir o dono da conta Brevo (recuperar senha por `notificacoes@` depois do MX) e decidir se mantém.
 - [ ] Depois da troca: adicionar SPF (incluindo o Brevo) e DMARC para melhorar a entrega.
 - [ ] Na troca final, o domínio passa do projeto antigo da Vercel para o novo (a DNS já está na Vercel, então não muda de provedor).
+
+---
+
+## 5. Asaas: o que fazer com os dados na migração (inventário de 08/10/2026)
+
+Todo uso do Asaas no código está protegido por `process.env.ASAAS_API_KEY` (e por `asaas_customer_id`). **Sem a chave, o site já funciona em modo manual** (mensalidade gerada localmente pelo cron, Pix estático, baixa manual). Por isso não é preciso apagar o código do Asaas para a troca; a limpeza é opcional e vem depois.
+
+Armadilhas ao migrar os dados do banco antigo:
+- [ ] **Zerar `student.asaas_subscription_id`** de todos os alunos. Hoje `generateMensalidadesFromExpiredPlans` **pula** quem tem assinatura Asaas ("o Asaas emite a próxima fatura"). Se o campo ficar preenchido, esses alunos **nunca mais ganham mensalidade nova** no site sem Asaas. Também faz `fetchAlunoNextInvoiceInfo` devolver `asaas_auto` e bloquear a antecipação de fatura.
+- [ ] **Cancelar as assinaturas e cobranças abertas no painel do Asaas** (senão o Asaas continua cobrando o aluno por fora do sistema).
+- [ ] Faturas abertas (`pendente`/`vencido`) vindas do Asaas: o site gera o Pix estático na primeira vez que o aluno abre a fatura **somente se `asaas_pix_payload` estiver vazio**. Limpar `asaas_pix_payload`, `asaas_pix_qrcode`, `asaas_invoice_url` e `asaas_payment_id` das faturas abertas migradas, para não mostrarem o Pix/link antigo do Asaas.
+- [ ] Remover a rota `app/api/webhooks/asaas` (endpoint público sem uso) e o texto "Cobrança Asaas Automática" do banner.
+- [ ] O **cron de cobrança NÃO é do Asaas** (gera mensalidades, marca atrasos, bloqueia inadimplentes, manda lembretes): **manter**.
+- [ ] Depois da troca: revogar a chave de API do Asaas e remover o webhook configurado lá.
