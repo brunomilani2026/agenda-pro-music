@@ -439,6 +439,65 @@ export async function renegotiateStudentPayment(
   return result;
 }
 
+/**
+ * Pix estático não tem baixa automática: o aluno paga no app do banco e clica
+ * "Já paguei". Isso só AVISA o professor (não altera o status) — quem confere o
+ * extrato e dá a baixa é ele, pelo financeiro.
+ */
+export async function avisarPagamentoPix(paymentId: string): Promise<{ success: boolean; error?: string; jaAvisado?: boolean }> {
+  const student = await getSessionStudent();
+  if (!student) return { success: false, error: 'Sessão inválida.' };
+
+  const supabase = await createClient();
+  const { data: pmt } = await supabase
+    .from('payment')
+    .select('id, idusers_fk, amount, status, notes, aluno_avisou_em')
+    .eq('id', paymentId)
+    .eq('idstudent_fk', student.idstudent)
+    .single();
+
+  if (!pmt) return { success: false, error: 'Fatura não encontrada.' };
+  if (pmt.status === 'pago') return { success: true, jaAvisado: true };
+  if (pmt.status !== 'pendente' && pmt.status !== 'vencido') {
+    return { success: false, error: 'Esta fatura não está aberta para pagamento.' };
+  }
+  if (pmt.aluno_avisou_em) return { success: true, jaAvisado: true };
+
+  const { error: updErr } = await supabase
+    .from('payment')
+    .update({ aluno_avisou_em: new Date().toISOString() })
+    .eq('id', paymentId);
+  if (updErr) {
+    console.error('Erro ao registrar aviso de pagamento:', updErr.message);
+    return { success: false, error: 'Não foi possível avisar o professor. Tente novamente.' };
+  }
+  try { updateTag('aluno-payments'); } catch { /* fora de contexto de ação */ }
+
+  const valor = `R$ ${Number(pmt.amount).toFixed(2).replace('.', ',')}`;
+  const msg = `${student.name} informou que pagou ${valor} por Pix${pmt.notes ? ` (${pmt.notes})` : ''}. Confira no extrato do banco e confirme em Financeiro → Receber.`;
+
+  // idstudent_fk obrigatório: a RLS de notif_insert só autoriza a sessão do aluno por ele.
+  const { error: notifErr } = await supabase.from('notification').insert([{
+    idusers_fk: pmt.idusers_fk,
+    idstudent_fk: student.idstudent,
+    recipient: 'teacher',
+    type: 'cobranca',
+    title: 'Aluno avisou que pagou por Pix',
+    message: msg,
+    read: false,
+  }]);
+  if (notifErr) console.error('Erro ao notificar professor do aviso de pagamento:', notifErr.message);
+
+  await afterResponse(() => emailTeacher(pmt.idusers_fk, {
+    title: 'Aluno avisou que pagou por Pix',
+    message: msg,
+    buttonLabel: 'Ver financeiro',
+    buttonPath: '/financeiro',
+  }));
+
+  return { success: true };
+}
+
 // ============================================================
 // Solicitações de Aula (RF03)
 // ============================================================
@@ -880,6 +939,7 @@ export async function fetchAlunoPayments() {
     interest: p.interest,
     notes: p.notes || '',
     credits_qty: (p as any).credits_qty || 0,
+    alunoAvisouEm: (p as any).aluno_avisou_em || '',
   }));
 }
 

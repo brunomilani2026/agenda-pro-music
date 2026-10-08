@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CreditCard, ExternalLink, CheckCircle, Clock, AlertTriangle, XCircle, RefreshCw, CalendarClock, ShoppingCart } from "lucide-react";
+import { CreditCard, ExternalLink, CheckCircle, Clock, AlertTriangle, XCircle, RefreshCw, CalendarClock, ShoppingCart, QrCode } from "lucide-react";
 import { fetchAlunoPayments, fetchAlunoFinanceiroPage, renegotiateStudentPayment, generateNextStudentInvoice } from "../../actions";
+import { PixPagamentoCard } from "@/components/PixAluno";
 import { getLocalISODate } from "@/lib/utils";
 
 export default function AlunoFinanceiroPage() {
@@ -11,6 +12,7 @@ export default function AlunoFinanceiroPage() {
   const [advanceLoading, setAdvanceLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [renegInvoice, setRenegInvoice] = useState<any | null>(null);
+  const [pixInvoice, setPixInvoice] = useState<any | null>(null);
   const [renegDate, setRenegDate] = useState('');
   const [renegNotes, setRenegNotes] = useState('');
   const [renegLoading, setRenegLoading] = useState(false);
@@ -114,7 +116,12 @@ export default function AlunoFinanceiroPage() {
   // Ações da fatura — reutilizadas na tabela (desktop) e nos cards (mobile).
   const renderActions = (p: any) => (
     <div className="flex items-center justify-end gap-2 flex-wrap">
-      {(p.status === 'pendente' || p.status === 'vencido') && p.invoiceUrl ? (
+      {(p.status === 'pendente' || p.status === 'vencido') && p.pixPayload ? (
+        <button onClick={() => setPixInvoice(p)}
+          className="inline-flex items-center gap-1 text-amber-500 hover:text-amber-400 font-bold text-xs bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20 transition-colors">
+          <QrCode className="w-3.5 h-3.5" /> {p.alunoAvisouEm ? 'Pix enviado' : 'Pagar com Pix'}
+        </button>
+      ) : (p.status === 'pendente' || p.status === 'vencido') && p.invoiceUrl ? (
         <a href={p.invoiceUrl} target="_blank" rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-amber-500 hover:text-amber-400 font-bold text-xs bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20 transition-colors">
           <CreditCard className="w-3.5 h-3.5" /> Pagar <ExternalLink className="w-3 h-3" />
@@ -259,6 +266,29 @@ export default function AlunoFinanceiroPage() {
           )}
         </div>
       </div>
+
+      {/* Modal - Pagamento por Pix estático */}
+      {pixInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
+          <div className="bg-gray-800 ring-1 ring-amber-500/20 border border-gray-700 rounded-3xl shadow-2xl w-full max-w-md p-6 md:p-8 my-4">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-xl font-black text-white">Pagar com Pix</h3>
+                <p className="text-xs text-gray-400">{pixInvoice.status === 'vencido' ? 'Vencida em' : 'Vence em'} {fmtDate(pixInvoice.duedate)}{pixInvoice.notes ? ` · ${pixInvoice.notes}` : ''}</p>
+              </div>
+              <button onClick={() => setPixInvoice(null)} className="text-gray-400 hover:text-white text-sm font-bold">Fechar</button>
+            </div>
+            <PixPagamentoCard
+              paymentId={pixInvoice.id}
+              amount={Number(pixInvoice.amount)}
+              pixQrcode={pixInvoice.pixQrcode}
+              pixPayload={pixInvoice.pixPayload}
+              avisadoEm={pixInvoice.alunoAvisouEm}
+              onAvisado={() => fetchAlunoPayments().then(setPayments)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Modal - Renegociação */}
       {renegInvoice && (

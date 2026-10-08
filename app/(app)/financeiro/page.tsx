@@ -84,6 +84,14 @@ const PaymentsList = memo(function PaymentsList({
                   <span className={`inline-block mt-1 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider border rounded-full ${cfg.classes}`}>
                     {cfg.label}
                   </span>
+                  {canReceive && payment.alunoAvisouEm && (
+                    <span
+                      title="O aluno informou que já fez o Pix. Confira no extrato do banco e dê baixa."
+                      className="block mt-1 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider border rounded-full text-sky-300 bg-sky-500/10 border-sky-500/30"
+                    >
+                      Aluno avisou que pagou
+                    </span>
+                  )}
                 </div>
               </div>
               {(canRenegotiate || canReceive || canEdit) && (
@@ -163,6 +171,14 @@ const PaymentsList = memo(function PaymentsList({
                     <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider border rounded-full ${cfg.classes}`}>
                       {cfg.label}
                     </span>
+                    {canReceive && payment.alunoAvisouEm && (
+                      <span
+                        title="O aluno informou que já fez o Pix. Confira no extrato do banco e dê baixa."
+                        className="block mt-1.5 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider border rounded-full text-sky-300 bg-sky-500/10 border-sky-500/30"
+                      >
+                        Aluno avisou que pagou
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">

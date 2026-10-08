@@ -99,23 +99,29 @@ export class PaymentService {
       return null;
     }
 
-    // Pix estático: toda cobrança nasce com QR Code e "copia e cola" próprios
-    // (sem Asaas). Falha aqui não derruba a criação do pagamento.
-    if (data && !data.asaas_pix_payload && pixConfigurado() && Number(data.amount) > 0) {
-      try {
-        const pix = await gerarPixEstatico({ valor: Number(data.amount), txid: txidDoPagamento(data.id) });
-        const { error: pixErr } = await supabase
-          .from('payment')
-          .update({ asaas_pix_payload: pix.payload, asaas_pix_qrcode: pix.qrcodeBase64 })
-          .eq('id', data.id);
-        if (pixErr) throw new Error(pixErr.message);
-        data.asaas_pix_payload = pix.payload;
-        data.asaas_pix_qrcode = pix.qrcodeBase64;
-      } catch (e: any) {
-        console.error('Pix estático não gerado para o pagamento', data.id, e?.message);
-      }
-    }
+    await PaymentService.attachStaticPix(supabase, data);
     return data;
+  }
+
+  /**
+   * Pix estático: toda cobrança nasce com QR Code e "copia e cola" próprios
+   * (sem Asaas). Muta `payment` e grava no banco. Falha aqui nunca derruba a
+   * criação do pagamento. Sem PIX_CHAVE configurada, não faz nada.
+   */
+  static async attachStaticPix(supabase: any, payment: any): Promise<void> {
+    if (!payment || payment.asaas_pix_payload || !pixConfigurado() || !(Number(payment.amount) > 0)) return;
+    try {
+      const pix = await gerarPixEstatico({ valor: Number(payment.amount), txid: txidDoPagamento(payment.id) });
+      const { error: pixErr } = await supabase
+        .from('payment')
+        .update({ asaas_pix_payload: pix.payload, asaas_pix_qrcode: pix.qrcodeBase64 })
+        .eq('id', payment.id);
+      if (pixErr) throw new Error(pixErr.message);
+      payment.asaas_pix_payload = pix.payload;
+      payment.asaas_pix_qrcode = pix.qrcodeBase64;
+    } catch (e: any) {
+      console.error('Pix estático não gerado para o pagamento', payment.id, e?.message);
+    }
   }
 
   static async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | null> {
@@ -1231,6 +1237,9 @@ export class PaymentService {
       await revertClaim();
       return { success: false, error: 'Erro ao criar pagamento renegociado.' };
     }
+
+    // Pix estático da fatura renegociada (sem Asaas configurado).
+    await PaymentService.attachStaticPix(supabase, newPayment);
 
     // ── Cancela a cobrança Asaas ANTIGA. Sem isso o link antigo continuava ──
     // pagável junto com o novo (cobrança dupla) — e, se o aluno pagasse o

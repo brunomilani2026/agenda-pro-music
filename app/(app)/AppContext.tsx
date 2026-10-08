@@ -42,6 +42,8 @@ export interface Payment {
   notes?: string;
   status: "pago" | "pendente" | "vencido" | "renegociado" | "cancelado";
   renegotiated_from?: string | null;
+  /** Quando o aluno clicou "Já paguei" (Pix estático): o professor confere no banco e dá baixa. */
+  alunoAvisouEm?: string | null;
 }
 
 /** Mapeia o pagamento cru do servidor para o formato da UI. */
@@ -55,6 +57,7 @@ export function mapPayments(raw: any[]): Payment[] {
     status: p.status as Payment['status'],
     notes: p.notes,
     renegotiated_from: p.renegotiated_from ?? null,
+    alunoAvisouEm: p.alunoAvisouEm ?? null,
   }));
 }
 

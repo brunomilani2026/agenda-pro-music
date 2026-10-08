@@ -490,3 +490,6 @@ REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
 INSERT INTO public.instrument_catalog (name) VALUES ('Violão'),('Guitarra'),('Piano / Teclado'),('Canto'),('Bateria'),('Baixo'),('Violino'),('Saxofone'),('Cavaquinho'),('Banjo'),('Outros') ON CONFLICT (name) DO NOTHING;
 
 -- Nota: no banco atual existe uma view "teacher_public" que o código não usa; não foi recriada.
+
+-- Pix estático: aviso "Já paguei" do aluno
+ALTER TABLE public.payment ADD COLUMN IF NOT EXISTS aluno_avisou_em timestamptz;

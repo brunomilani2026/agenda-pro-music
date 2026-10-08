@@ -2000,7 +2000,7 @@ export async function fetchTeacherPayments(): Promise<any[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('payment')
-      .select('id, idstudent_fk, amount, duedate, paymentdate, status, method, notes, renegotiated_from, student:idstudent_fk(name)')
+      .select('id, idstudent_fk, amount, duedate, paymentdate, status, method, notes, renegotiated_from, aluno_avisou_em, student:idstudent_fk(name)')
       .eq('idusers_fk', dbUser.idusers)
       .order('duedate', { ascending: false });
 
@@ -2020,6 +2020,7 @@ export async function fetchTeacherPayments(): Promise<any[]> {
       method: p.method || '',
       notes: p.notes || '',
       renegotiated_from: p.renegotiated_from || null,
+      alunoAvisouEm: (p as any).aluno_avisou_em || null,
     }));
   } catch (err: any) {
     console.error('Error fetching teacher payments:', err.message);

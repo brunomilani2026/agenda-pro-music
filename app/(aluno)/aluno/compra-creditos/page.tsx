@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { CheckCircle, CreditCard, ShoppingCart, Loader2, Copy, Check, ExternalLink, QrCode } from "lucide-react";
 import { fetchCompraCreditosPage, registerCreditPurchase } from "../../actions";
+import { JaPagueiButton } from "@/components/PixAluno";
 
 type CreditPackageOption = { id: string; name: string; credits: number; price: number; popular?: boolean; };
 
@@ -113,6 +114,7 @@ export default function CompraCreditosPage() {
                     </button>
                   </div>
                 </div>
+                <JaPagueiButton paymentId={purchaseResult.paymentId} />
                 {purchaseResult.invoiceUrl && (
                   <a href={purchaseResult.invoiceUrl} target="_blank" rel="noopener noreferrer"
                     className="w-full flex flex-col items-center justify-center gap-1 bg-gray-700 hover:bg-gray-600 text-sm font-bold text-gray-300 hover:text-white transition-colors py-4 border border-gray-600 rounded-xl">
