@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 520px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { background: #1a1a2e; padding: 28px 32px; text-align: center; }
+    .header h1 { color: #f59e0b; font-size: 22px; margin: 0; }
+    .header p { color: #9ca3af; font-size: 13px; margin: 6px 0 0; }
+    .body { padding: 32px; }
+    .body p { color: #374151; font-size: 15px; margin: 0 0 12px; }
+    .notification-box { background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 16px 20px; margin: 20px 0; }
+    .notification-box .title { font-weight: bold; color: #92400e; font-size: 15px; margin: 0 0 6px; }
+    .notification-box .message { color: #78350f; font-size: 14px; margin: 0; }
+    .footer { background: #f9fafb; padding: 16px 32px; text-align: center; }
+    .footer p { color: #9ca3af; font-size: 12px; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎵 PRO MUSIC</h1>
+      <p>Notificação do sistema</p>
+    </div>
+    <div class="body">
+      <p>Olá, <strong>{{to_name}}</strong>!</p>
+      <p>Você recebeu uma nova notificação no seu painel:</p>
+      <div class="notification-box">
+        <p class="title">{{notification_title}}</p>
+        <p class="message">{{notification_message}}</p>
+      </div>
+      <p>Acesse o painel para ver os detalhes e tomar uma ação.</p>
+    </div>
+    <div class="footer">
+      <p>PRO MUSIC — Sistema de Gestão de Aulas</p>
+    </div>
+  </div>
+</body>
+</html>

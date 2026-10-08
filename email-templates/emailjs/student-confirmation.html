@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml" lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Ative sua conta de aluno</title>
+    <!--[if mso]>
+    <noscript>
+      <xml>
+        <o:OfficeDocumentSettings>
+          <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+      </xml>
+    </noscript>
+    <![endif]-->
+    <style>
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+        .btn-primary:hover { background-color: #fbbf24 !important; }
+        .btn-primary:hover span { color: #18181b !important; }
+
+        @media screen and (max-width: 600px) {
+            .sm-w-full { width: 100% !important; }
+            .sm-px-24 { padding-left: 24px !important; padding-right: 24px !important; }
+            .sm-py-32 { padding-top: 32px !important; padding-bottom: 32px !important; }
+            .sm-text-title { font-size: 24px !important; }
+            .sm-btn-full a { display: block !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; width: 100%; background-color: #e7e5e4; -webkit-font-smoothing: antialiased;">
+    <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
+        Confirme sua conta e crie sua senha para acessar suas aulas. &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+    </div>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #e7e5e4;">
+        <tr>
+            <td align="center" style="padding: 32px 16px;">
+
+                <table role="presentation" cellpadding="0" cellspacing="0" width="600" class="sm-w-full" style="width: 600px; max-width: 600px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 38px -10px rgba(24, 24, 27, 0.22), 0 6px 14px -8px rgba(24, 24, 27, 0.18);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #18181b; background-image: linear-gradient(135deg, #18181b 0%, #27272a 100%); padding: 40px 40px 36px;" class="sm-px-24">
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td style="font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: #f59e0b; padding-bottom: 14px;">
+                                        🎵 Agenda Pro Music
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="sm-text-title" style="font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 28px; line-height: 1.25; font-weight: 800; color: #ffffff;">
+                                        Bem-vindo(a) às suas aulas! 🎶
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-top: 18px;">
+                                        <div style="width: 56px; height: 4px; background-color: #f59e0b; border-radius: 999px; font-size: 0; line-height: 0;">&nbsp;</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 40px 40px 8px;" class="sm-px-24 sm-py-32">
+                            <p style="margin: 0 0 20px; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 700; color: #18181b;">
+                                Olá, {{student_name}}! 👋
+                            </p>
+                            <p style="margin: 0 0 16px; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.65; color: #52525b;">
+                                O professor(a) <strong style="color: #18181b;">{{teacher_name}}</strong> acabou de criar o seu perfil na plataforma.
+                            </p>
+                            <p style="margin: 0; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.65; color: #52525b;">
+                                Para acessar sua agenda, acompanhar seus créditos e seu progresso, é só confirmar sua conta e criar uma senha de acesso.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Button -->
+                    <tr>
+                        <td style="padding: 32px 40px 28px;" class="sm-px-24" align="left">
+                            <table role="presentation" cellpadding="0" cellspacing="0" class="sm-btn-full">
+                                <tr>
+                                    <td style="border-radius: 12px; background-color: #f59e0b;" class="btn-primary">
+                                        <!--[if mso]>
+                                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{activation_link}}" style="height:52px;v-text-anchor:middle;width:240px;" arcsize="23%" strokecolor="#f59e0b" fillcolor="#f59e0b">
+                                          <w:anchorlock/>
+                                          <center style="color:#18181b;font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;">Ativar minha conta</center>
+                                        </v:roundrect>
+                                        <![endif]-->
+                                        <!--[if !mso]><!-->
+                                        <a href="{{activation_link}}" target="_blank" style="display: inline-block; padding: 16px 36px; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 700; line-height: 1; color: #18181b; text-decoration: none; border-radius: 12px;">
+                                            <span style="color: #18181b;">Ativar minha conta</span>
+                                        </a>
+                                        <!--<![endif]-->
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Fallback link -->
+                    <tr>
+                        <td style="padding: 0 40px 36px;" class="sm-px-24">
+                            <p style="margin: 0 0 8px; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #a1a1aa;">
+                                Se o botão não funcionar, copie e cole este link no seu navegador:
+                            </p>
+                            <p style="margin: 0; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.6; word-break: break-all;">
+                                <a href="{{activation_link}}" target="_blank" style="color: #2563eb; text-decoration: underline;">{{activation_link}}</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style="padding: 0 40px;" class="sm-px-24">
+                            <div style="height: 1px; background-color: #f4f4f5; font-size: 0; line-height: 0;">&nbsp;</div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 28px 40px 36px;" class="sm-px-24">
+                            <p style="margin: 0 0 6px; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #a1a1aa;">
+                                Não esperava este e-mail? Pode ignorá-lo com segurança.
+                            </p>
+                            <p style="margin: 0; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #a1a1aa;">
+                                E-mail automático — por favor, não responda.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+                <table role="presentation" cellpadding="0" cellspacing="0" width="600" class="sm-w-full" style="width: 600px; max-width: 600px;">
+                    <tr>
+                        <td align="center" style="padding: 24px 16px 8px; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 12px; color: #a8a29e;">
+                            © Agenda Pro Music · agendapromusic.com.br
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

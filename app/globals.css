@@ -1,0 +1,224 @@
+@import "tailwindcss";
+
+:root {
+  --background: #111827;
+  /* gray-900 */
+  --foreground: #f3f4f6;
+  /* gray-100 */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-outfit), Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #111827;
+    --foreground: #f3f4f6;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-outfit), sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scroll suave em saltos por âncora */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar Nativa Absurdamente Fina / Transparente e Minimalista */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.6);
+}
+
+/* Container principal de scroll: barra mais grossa, evita rubber-band do body */
+.custom-scrollbar {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.55);
+  background-clip: padding-box;
+}
+
+/* Organic Noise / Film Grain Effect para quebrar as linhas de Vector do Tailwind */
+.bg-noise {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+
+
+@keyframes float-local-note {
+  0% { transform: translateY(10px) scale(0.5) rotate(-10deg); opacity: 0; }
+  20% { opacity: 1; filter: blur(0px); }
+  100% { transform: translateY(-40px) scale(1.5) rotate(20deg); opacity: 0; filter: blur(2px); }
+}
+
+.animate-float-local-note {
+  animation: float-local-note 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* Nota Musical Ambiente - aparece de vez em quando, suave */
+@keyframes ambient-note {
+  0%, 80%   { opacity: 0; transform: translateY(0px) rotate(-5deg) scale(0.8); }
+  85%        { opacity: 0.5; }
+  95%        { opacity: 0.6; transform: translateY(-25px) rotate(10deg) scale(1.2); }
+  100%       { opacity: 0; transform: translateY(-35px) rotate(15deg) scale(1); }
+}
+
+.animate-ambient-note {
+  animation: ambient-note 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.2s ease-out;
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0.95) translateY(15px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
+}
+
+@keyframes eq {
+  0% {
+    transform: scaleY(0.4);
+  }
+
+  50% {
+    transform: scaleY(1.3);
+  }
+
+  100% {
+    transform: scaleY(0.4);
+  }
+}
+
+.animate-eq {
+  transform-origin: bottom;
+  animation: eq var(--eq-duration, 1s) infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
+
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s infinite;
+}
+
+/* "Respiração" do brilho de fundo: mesma curva de escala do pulse-ring, mas SEM
+   box-shadow — só transform, que o navegador anima no compositor (GPU) sem
+   repintar. will-change promove a camada uma vez, em vez de a cada frame. */
+@keyframes glow-breathe {
+  0%   { transform: scale(0.9); }
+  70%  { transform: scale(1); }
+  100% { transform: scale(0.9); }
+}
+
+.animate-glow-breathe {
+  animation: glow-breathe 2s infinite;
+  will-change: transform;
+}
+
+/* Quem pede menos movimento (SO) fica com o brilho parado. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-glow-breathe {
+    animation: none;
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(2deg); }
+}
+
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+@keyframes sound-bar {
+  0%, 100% { height: 10%; }
+  50% { height: 80%; }
+}
+
+.animate-sound-bar {
+  animation: sound-bar var(--duration, 1s) ease-in-out infinite;
+}

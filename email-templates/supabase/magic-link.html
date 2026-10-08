@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Seu link de acesso</title>
+    <style>
+        body { font-family: 'Inter', 'Helvetica', Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 0; color: #3f3f46; }
+        .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .header { background-color: #18181b; padding: 30px 20px; text-align: center; border-bottom: 4px solid #f59e0b; }
+        .header .brand { color: #f59e0b; margin: 0 0 6px; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
+        .header h1 { color: #ffffff; margin: 0; font-size: 24px; }
+        .content { padding: 40px 30px; }
+        .content h2 { color: #18181b; margin-top: 0; font-size: 20px; }
+        .content p { font-size: 16px; line-height: 1.6; margin-bottom: 24px; }
+        .button-container { text-align: center; margin: 35px 0; }
+        .button { display: inline-block; background-color: #f59e0b; color: #18181b; font-weight: bold; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; }
+        .muted-link { word-break: break-all; font-size: 14px; color: #3b82f6; }
+        .footer { background-color: #f4f4f5; padding: 20px; text-align: center; font-size: 13px; color: #71717a; border-top: 1px solid #e4e4e7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p class="brand">🎵 Agenda Pro Music</p>
+            <h1>Seu link de acesso</h1>
+        </div>
+        <div class="content">
+            <h2>Entrar na sua conta</h2>
+            <p>Use o botão abaixo para acessar a Agenda Pro Music sem precisar digitar a senha.</p>
+
+            <div class="button-container">
+                <a href="{{ .ConfirmationURL }}" class="button">Acessar minha conta</a>
+            </div>
+
+            <p>Se o botão não funcionar, copie e cole este link no seu navegador:</p>
+            <p class="muted-link">{{ .ConfirmationURL }}</p>
+            <p>Se você não pediu este acesso, ignore este e-mail.</p>
+        </div>
+        <div class="footer">
+            <p>Este é um e-mail automático, por favor não responda.</p>
+        </div>
+    </div>
+</body>
+</html>
