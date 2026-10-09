@@ -247,3 +247,12 @@ Falta:
 - [ ] EmailJS, Brevo, Asaas: trocar senha, revogar chaves antigas; Asaas: remover webhook.
 - [ ] Apagar `C:\dev\migracao-agenda\conexoes.env` e `env.local.backup-antes-migracao`; SPF/DMARC.
 - [ ] Após 7–15 dias: apagar projeto antigo (Vercel e Supabase), guardando o backup JSON do Drive.
+
+## 12. Fechamento (09/10/2026, 18h)
+- [x] MFA Supabase antigo; senha do banco novo trocada; `conexoes.env` apagado.
+- [x] EmailJS antigo (aberto pelo dev): recuperado via `notificacoes@` e fechado. EmailJS novo, Brevo e Asaas: senhas/chaves/webhook tratados pelo Bruno.
+- [x] DNS e-mail: SPF `v=spf1 include:spf.brevo.com mx ~all` publicado; DKIM Brevo e DMARC (p=none, relatórios p/ Brevo) já existiam.
+Falta apenas:
+- [ ] GitHub `siteagendapromusic-cloud`: redefinir senha via Gmail + 2FA (não bloqueia nada).
+- [ ] Em 7–15 dias (por volta de 16–24/10/2026): apagar o projeto antigo na Vercel e no Supabase, guardando o backup JSON do Drive.
+- [ ] Opcional: subir o DMARC de p=none para p=quarantine depois de ~30 dias sem problemas de entrega.
