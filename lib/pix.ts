@@ -65,7 +65,11 @@ export function montarPayloadPix(opts: { valor: number; txid: string }): string 
 
   const nome = limpar(process.env.PIX_NOME_RECEBEDOR || 'RECEBEDOR', 25) || 'RECEBEDOR';
   const cidade = limpar(process.env.PIX_CIDADE || 'BRASIL', 15) || 'BRASIL';
-  const txid = opts.txid.replace(/[^A-Za-z0-9]/g, '').slice(0, 25) || '***';
+  // Identificador da transação: o Inter (recebedor) recusou o Pix quando o QR
+  // trazia um txid próprio; o QR gerado pelo próprio app dele usa "***" (sem
+  // identificador). Reproduzimos o mesmo formato. O vínculo com a fatura é feito
+  // pelo sistema (botão "Já paguei" + baixa manual), não pelo txid.
+  const txid = '***';
 
   const contaPix = campo('00', 'br.gov.bcb.pix') + campo('01', chave);
   const semCrc =
