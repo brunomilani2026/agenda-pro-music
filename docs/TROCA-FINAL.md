@@ -173,3 +173,20 @@ Pendências de segurança (fazer antes de entrar dado real):
 - [ ] Vercel: remover variáveis do Asaas (`ASAAS_SANDBOX`) se ainda existirem.
 
 Dados importados do site antigo (configuração, sem dados de aluno): pacotes (Avulsa R$150, Mensal R$450, Trimestral R$1.250, Anual R$2.300; 180 dias), instrumentos (Cavaquinho, Banjo, Banjo/Cavaquinho) e bio do professor. Alunos, aulas, pagamentos e contas de login ficam para o ensaio de migração e a troca final.
+
+---
+
+## 7. Migração de dados: ensaio aplicado (09/10/2026)
+
+Ferramenta: `C:\dev\migracao-agenda\migrar.mjs` (lê o banco antigo em modo SOMENTE LEITURA e grava no novo numa transação; sem `--aplicar` apenas ensaia e desfaz). Conexões em `C:\dev\migracao-agenda\conexoes.env` (fora do Git; contêm senhas de banco: **trocar essas senhas depois da troca final**).
+
+Copiado do banco antigo para o novo (ensaio já APLICADO): professor Bruno Milani + 23 alunos, 355 aulas, 60 pagamentos (totais idênticos), 635 notificações, 747 horários bloqueados, 15 créditos, 4 pacotes, 10 solicitações, 25 contas de login **com as senhas preservadas**, e o admin `admin@agendapromusic.com.br`.
+Fora da cópia de propósito: admin do desenvolvedor (`ricardomarinho1101@...`), admin de teste, "Professor Teste" e seus 6 alunos, aluno "Ricardo Marinho", Pamela Pereira (teste).
+Higiene: vínculos ao Asaas zerados (7 alunos) e faturas abertas sem dados do Asaas (o Pix próprio é gerado ao abrir a fatura).
+
+Para a troca final (repetir com dados do dia):
+- [ ] Parar escritas no site antigo (manutenção) e rodar `node migrar.mjs` (ensaio) e depois `node migrar.mjs --aplicar`.
+- [ ] Repetir a higiene do Asaas e **cancelar no painel do Asaas** assinaturas e cobranças abertas.
+- [ ] **O desenvolvedor é administrador do site antigo** (`ricardomarinho1101@gmail.com`): não migrar essa conta; remover do site antigo ao desligá-lo.
+- [ ] Recolocar `NEXT_PUBLIC_EMAILJS_SERVICE_ID=service_1fw7xqm` na Vercel e no `.env.local` (foi esvaziado durante o ensaio para não notificar alunos reais).
+- [ ] Trocar as senhas de banco dos dois projetos Supabase e apagar `conexoes.env`.
