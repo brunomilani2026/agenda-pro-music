@@ -59,6 +59,18 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
     title: "Meu Painel",
     subtitle: "Acompanhe suas aulas e progresso",
   },
+  "/aluno/diario": {
+    title: "Meu Diário",
+    subtitle: "Suas aulas, tarefas e anotações",
+  },
+  "/aluno/estudos": {
+    title: "Meus Estudos",
+    subtitle: "Seu plano de estudos e sua evolução",
+  },
+  "/aluno/materiais": {
+    title: "Materiais",
+    subtitle: "Partituras, exercícios e links das aulas",
+  },
   "/aluno/aulas": {
     title: "Minhas Aulas",
     subtitle: "Histórico, agendamentos e remarcações",

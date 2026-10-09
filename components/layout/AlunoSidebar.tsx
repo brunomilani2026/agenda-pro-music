@@ -3,13 +3,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, LayoutDashboard, Calendar, DollarSign, User, Bell, Package } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, DollarSign, User, Bell, Package, ListChecks, FolderOpen, BookOpen } from "lucide-react";
 import { clearSessionEmail } from "@/lib/session";
 import { formatName } from "@/lib/utils";
 
 const navItems = [
   { label: "Meu Painel", href: "/aluno/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
   { label: "Minhas Aulas", href: "/aluno/aulas", icon: <Calendar className="w-5 h-5" /> },
+  { label: "Meu Diário", href: "/aluno/diario", icon: <BookOpen className="w-5 h-5" /> },
+  { label: "Meus Estudos", href: "/aluno/estudos", icon: <ListChecks className="w-5 h-5" /> },
+  { label: "Materiais", href: "/aluno/materiais", icon: <FolderOpen className="w-5 h-5" /> },
   { label: "Planos e Créditos", href: "/aluno/compra-creditos", icon: <Package className="w-5 h-5" /> },
   { label: "Financeiro", href: "/aluno/financeiro", icon: <DollarSign className="w-5 h-5" /> },
   { label: "Notificações", href: "/aluno/notificacoes", icon: <Bell className="w-5 h-5" /> },

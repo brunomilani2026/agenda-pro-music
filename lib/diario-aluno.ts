@@ -70,6 +70,15 @@ export function limparNota(visibility: unknown, body: unknown): Resultado<{ visi
   return { ok: true, valor: { visibility, body: t } };
 }
 
+/** Valida uma anotação PESSOAL do aluno (visibilidade fixa: só ele lê). */
+export function limparNotaPessoal(body: unknown): Resultado<string> {
+  if (typeof body !== 'string') return { ok: false, error: 'Escreva a anotação.' };
+  const t = body.trim();
+  if (!t) return { ok: false, error: 'Escreva a anotação.' };
+  if (t.length > MAX_CAMPO) return { ok: false, error: `A anotação passou de ${MAX_CAMPO} caracteres.` };
+  return { ok: true, valor: t };
+}
+
 /** O banco ainda não tem as tabelas da etapa 2 (SQL não aplicado)? */
 export function tabelaAusente(err: { code?: string; message?: string } | null | undefined): boolean {
   if (!err) return false;
