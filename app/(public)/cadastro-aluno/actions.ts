@@ -156,7 +156,7 @@ export async function submitStudentRegistration(formData: FormData) {
         toEmail: email,
         toName: name,
         title: 'Bem-vindo(a)!',
-        message: `Olá, ${name}! Sua conta de aluno no Agenda Pro Music está pronta.\n\nAcesse o painel para acompanhar suas aulas, faturas e notificações.`,
+        message: `Sua conta de aluno no Agenda Pro Music está pronta.\n\nAcesse o painel para acompanhar suas aulas, faturas e notificações.`,
         buttonLabel: 'Acessar painel',
         buttonUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.agendapromusic.com.br'}/aluno/dashboard`,
       });
