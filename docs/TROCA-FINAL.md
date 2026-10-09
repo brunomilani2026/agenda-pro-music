@@ -223,3 +223,11 @@ Ordem no dia (≈30 min):
 10. [ ] Testar no domínio oficial: login professor e aluno, criar aula, e-mail, Pix, foto, "Já paguei".
 11. [ ] Desligar o job antigo no banco ANTIGO (`select cron.unschedule(1)`), para não duplicar lembretes se o site antigo voltar.
 12. [ ] Fim da manutenção + aviso. Depois, seção 3 (remover o desenvolvedor).
+
+## 10. Troca executada (09/10/2026, ~16h30)
+- Backup do banco antigo em `Claude Code/backup-banco-antigo/` (Drive). Migração `--aplicar` OK (25 contas com senha, 355 aulas, 60 pagamentos, totais idênticos).
+- Domínio: removido do projeto antigo (`calendario-de-aulas-de-musica`, conta siteagendapromusic) e adicionado ao `agenda-pro-music-novo` (conta bruno-milani). Verificação por 2 TXT `_vercel` na DNS da conta antiga (a DNS fica na Vercel antiga; o registrador é a HostGator, **não** usar o assistente "Alterar plataforma" dela).
+- `www.agendapromusic.com.br` serve o site novo; o domínio sem www redireciona (308) para o www.
+- Lembrete de 1h agendado no banco novo (pg_cron `aula-1h`, a cada 15 min). Crons diários religados no `vercel.json`.
+- O job antigo no banco antigo continua existindo, mas chama o site novo com o segredo antigo (recebe 401, inofensivo). Some junto com o projeto antigo.
+- Falta: testes no domínio oficial; seção 3 (remover o desenvolvedor, trocar chaves e senhas); SPF/DMARC; apagar `conexoes.env` ao final.
