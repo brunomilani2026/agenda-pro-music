@@ -15,6 +15,7 @@ import {
   Layers,
   ListChecks,
   FolderOpen,
+  ClipboardList,
   Settings,
   Bell,
   MessageCircleHeart
@@ -84,6 +85,11 @@ const professorGroups: NavGroup[] = [
         label: "Materiais",
         href: "/materiais",
         icon: <FolderOpen className="w-5 h-5" />,
+      },
+      {
+        label: "Tarefas",
+        href: "/tarefas",
+        icon: <ClipboardList className="w-5 h-5" />,
       },
     ]
   },

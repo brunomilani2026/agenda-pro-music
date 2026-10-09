@@ -59,6 +59,10 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
     title: "Meu Painel",
     subtitle: "Acompanhe suas aulas e progresso",
   },
+  "/aluno/tarefas": {
+    title: "Minhas Tarefas",
+    subtitle: "Exercícios, entregas e retornos do professor",
+  },
   "/aluno/diario": {
     title: "Meu Diário",
     subtitle: "Suas aulas, tarefas e anotações",
@@ -107,6 +111,8 @@ export default function Topbar({
       ? { title: "Trilhas de Estudo", subtitle: "Monte planos e aplique aos seus alunos" }
       : pathname === "/materiais"
       ? { title: "Biblioteca de Materiais", subtitle: "Arquivos e links para as suas aulas" }
+      : pathname === "/tarefas"
+      ? { title: "Tarefas", subtitle: "Entregas e prazos que pedem a sua atenção" }
       : isStudentPortal
         ? { title: "Área do Aluno", subtitle: "Bem-vindo ao seu painel" }
         : { title: "Área do Professor", subtitle: "Bem-vindo à sua área" }

@@ -18,6 +18,7 @@ const PROTECTED_PROFESSOR_PREFIXES = [
   '/alunos',
   '/trilhas',
   '/materiais',
+  '/tarefas',
   '/financeiro',
   '/configuracoes',
   '/solicitacoes',

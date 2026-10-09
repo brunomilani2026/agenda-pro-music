@@ -11,11 +11,12 @@ import { aplicarTrilha } from "../../trilhas/actions";
 import { compartilharComAluno, definirMateriaisDaAula, fetchMateriaisAluno, materiaisDaAula, retirarDoAluno } from "./materiais-actions";
 import { enderecoDoMaterial } from "../../materiais/actions";
 import { formatarTamanho, type Material } from "@/lib/materiais";
+import TarefasAba from "./TarefasAba";
 import { agruparPlano, calcularEvolucao, ROTULO_DIFICULDADE, ROTULO_STATUS, STATUS_ESTUDO, SUGESTOES_COMPETENCIA, type ItemAluno, type StatusEstudo, type Trilha } from "@/lib/estudos";
 import type { FichaAluno, FichaAula, FichaFatura, FichaReposicao } from "@/lib/ficha-aluno";
 import { CAMPOS_TEXTO, MAX_CAMPO, VISIBILIDADE_PROFESSOR, type NotaAluno, type RegistroAula, type VisibilidadeNota } from "@/lib/diario-aluno";
 
-type Aba = "geral" | "aulas" | "diario" | "estudos" | "materiais" | "notas" | "financeiro" | "reposicoes";
+type Aba = "geral" | "aulas" | "diario" | "estudos" | "materiais" | "tarefas" | "notas" | "financeiro" | "reposicoes";
 
 const ABAS: { id: Aba; label: string }[] = [
   { id: "geral", label: "Visão geral" },
@@ -23,6 +24,7 @@ const ABAS: { id: Aba; label: string }[] = [
   { id: "diario", label: "Diário" },
   { id: "estudos", label: "Estudos" },
   { id: "materiais", label: "Materiais" },
+  { id: "tarefas", label: "Tarefas" },
   { id: "notas", label: "Anotações" },
   { id: "financeiro", label: "Financeiro" },
   { id: "reposicoes", label: "Reposições" },
@@ -728,6 +730,8 @@ export default function FichaAlunoPage() {
           )}
         </div>
       )}
+
+      {aba === "tarefas" && <TarefasAba alunoId={aluno.id} />}
 
       {aba === "notas" && (
         <Painel titulo={`Anotações (${notas.length})`} acao={<Lock className="w-4 h-4 text-amber-500" />}>
