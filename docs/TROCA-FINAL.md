@@ -243,7 +243,7 @@ Feito:
 Falta:
 - [ ] MFA na conta Supabase antiga (confirmar).
 - [ ] GitHub `siteagendapromusic-cloud`: redefinir senha via Gmail + 2FA + remover colaboradores.
-- [ ] Supabase NOVO: trocar a senha do banco (a atual está em `conexoes.env`).
+- [x] Supabase NOVO: senha do banco trocada (09/10/2026); `conexoes.env` e `env.local.backup-antes-migracao` APAGADOS.
 - [ ] EmailJS, Brevo, Asaas: trocar senha, revogar chaves antigas; Asaas: remover webhook.
 - [ ] Apagar `C:\dev\migracao-agenda\conexoes.env` e `env.local.backup-antes-migracao`; SPF/DMARC.
 - [ ] Após 7–15 dias: apagar projeto antigo (Vercel e Supabase), guardando o backup JSON do Drive.
