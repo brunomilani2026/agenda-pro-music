@@ -36,13 +36,18 @@ export function JaPagueiButton({
   const avisar = async () => {
     setLoading(true);
     setErro("");
-    const res = await avisarPagamentoPix(paymentId);
-    setLoading(false);
-    if (res.success) {
-      setAvisado(true);
-      onAvisado?.();
-    } else {
-      setErro(res.error || "Não foi possível avisar o professor.");
+    try {
+      const res = await avisarPagamentoPix(paymentId);
+      if (res.success) {
+        setAvisado(true);
+        onAvisado?.();
+      } else {
+        setErro(res.error || "Não foi possível avisar o professor.");
+      }
+    } catch {
+      setErro("Sem conexão com o servidor. Tente novamente em instantes.");
+    } finally {
+      setLoading(false);
     }
   };
 

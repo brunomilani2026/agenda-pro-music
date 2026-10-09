@@ -445,17 +445,30 @@ export async function renegotiateStudentPayment(
  * extrato e dá a baixa é ele, pelo financeiro.
  */
 export async function avisarPagamentoPix(paymentId: string): Promise<{ success: boolean; error?: string; jaAvisado?: boolean }> {
+  try {
+    return await avisarPagamentoPixImpl(paymentId);
+  } catch (e: any) {
+    console.error('avisarPagamentoPix falhou:', e?.message || e);
+    return { success: false, error: `Erro inesperado ao avisar o professor (${String(e?.message || e).slice(0, 120)}).` };
+  }
+}
+
+async function avisarPagamentoPixImpl(paymentId: string): Promise<{ success: boolean; error?: string; jaAvisado?: boolean }> {
   const student = await getSessionStudent();
   if (!student) return { success: false, error: 'Sessão inválida.' };
 
   const supabase = await createClient();
-  const { data: pmt } = await supabase
+  const { data: pmt, error: selErr } = await supabase
     .from('payment')
     .select('id, idusers_fk, amount, status, notes, aluno_avisou_em')
     .eq('id', paymentId)
     .eq('idstudent_fk', student.idstudent)
-    .single();
+    .maybeSingle();
 
+  if (selErr) {
+    console.error('avisarPagamentoPix: erro ao ler a fatura:', selErr.message);
+    return { success: false, error: `Não foi possível ler a fatura (${selErr.message.slice(0, 100)}).` };
+  }
   if (!pmt) return { success: false, error: 'Fatura não encontrada.' };
   if (pmt.status === 'pago') return { success: true, jaAvisado: true };
   if (pmt.status !== 'pendente' && pmt.status !== 'vencido') {
@@ -463,12 +476,17 @@ export async function avisarPagamentoPix(paymentId: string): Promise<{ success: 
   }
   if (pmt.aluno_avisou_em) return { success: true, jaAvisado: true };
 
-  const { error: updErr } = await supabase
+  // A posse da fatura já foi comprovada acima (leitura com a sessão do aluno,
+  // filtrada pelo idstudent dele). A gravação usa o cliente de serviço para não
+  // depender de política de UPDATE do aluno, que falhava em silêncio.
+  const { data: upd, error: updErr } = await createAdminClient()
     .from('payment')
     .update({ aluno_avisou_em: new Date().toISOString() })
-    .eq('id', paymentId);
-  if (updErr) {
-    console.error('Erro ao registrar aviso de pagamento:', updErr.message);
+    .eq('id', paymentId)
+    .eq('idstudent_fk', student.idstudent)
+    .select('id');
+  if (updErr || !upd || upd.length === 0) {
+    console.error('Erro ao registrar aviso de pagamento:', updErr?.message || 'nenhuma linha atualizada');
     return { success: false, error: 'Não foi possível avisar o professor. Tente novamente.' };
   }
   try { updateTag('aluno-payments'); } catch { /* fora de contexto de ação */ }
