@@ -197,7 +197,7 @@ Para a troca final (repetir com dados do dia):
 
 Regra nova no código: **aluno com status `inativo` fica fora de lembretes de cobrança e de atraso, lembretes de aula (diário e 1h antes), bloqueio automático por atraso e geração de mensalidade** (`lib/aluno-inativo.ts`). Faturas abertas e aulas futuras dele **permanecem** no sistema, só sem aviso/cobrança automática.
 
-Alunos inativos hoje: **Artur Lacerda** e **Luis Montenegro** (inativados na cópia e no script `migrar.mjs`, passo 2e, para sobreviver à migração final).
+Alunos inativos hoje: **Artur Lacerda** e **Luis Montenegro** (inativados na cópia; também sem aulas futuras: as 7 do Luis foram canceladas em 09/10/2026, as do Artur já estavam; `migrar.mjs` passos 2e e 2f repetem isso na migração final).
 
 - [ ] **No site ATUAL (antigo), a regra NÃO existe**: inativar lá não impede os avisos. Até a troca final, esses dois ainda podem receber avisos do site antigo (lembrete de atraso e de aula). Para silenciar já: cancelar/renegociar as faturas abertas deles e cancelar as aulas futuras (Luis tem 7), ou aguardar a troca.
 - [ ] Na troca final, conferir se continuam `inativo` depois de rodar `migrar.mjs --aplicar`.
