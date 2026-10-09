@@ -16,6 +16,7 @@ const PROTECTED_PROFESSOR_PREFIXES = [
   '/agenda',
   '/dashboard',
   '/alunos',
+  '/trilhas',
   '/financeiro',
   '/configuracoes',
   '/solicitacoes',

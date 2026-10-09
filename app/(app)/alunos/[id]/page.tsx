@@ -3,18 +3,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AlertTriangle, ArrowLeft, BookOpen, CalendarClock, Edit3, Info, Lock, Package, Plus, RefreshCw, Repeat, Trash2, Wallet, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BookOpen, CalendarClock, Edit3, Info, ListChecks, Lock, Package, Plus, RefreshCw, Repeat, Trash2, Wallet, X } from "lucide-react";
 import { fetchFichaAluno } from "./actions";
 import { apagarNota, fetchDiario, salvarNota, salvarRegistroAula } from "./diario-actions";
+import { adicionarItemAluno, alterarStatusEstudo, fetchPlano, moverItemAluno, removerItemAluno } from "./estudos-actions";
+import { aplicarTrilha } from "../../trilhas/actions";
+import { agruparPlano, calcularEvolucao, ROTULO_DIFICULDADE, ROTULO_STATUS, STATUS_ESTUDO, SUGESTOES_COMPETENCIA, type ItemAluno, type StatusEstudo, type Trilha } from "@/lib/estudos";
 import type { FichaAluno, FichaAula, FichaFatura, FichaReposicao } from "@/lib/ficha-aluno";
 import { CAMPOS_TEXTO, MAX_CAMPO, VISIBILIDADE_PROFESSOR, type NotaAluno, type RegistroAula, type VisibilidadeNota } from "@/lib/diario-aluno";
 
-type Aba = "geral" | "aulas" | "diario" | "notas" | "financeiro" | "reposicoes";
+type Aba = "geral" | "aulas" | "diario" | "estudos" | "notas" | "financeiro" | "reposicoes";
 
 const ABAS: { id: Aba; label: string }[] = [
   { id: "geral", label: "Visão geral" },
   { id: "aulas", label: "Aulas" },
   { id: "diario", label: "Diário" },
+  { id: "estudos", label: "Estudos" },
   { id: "notas", label: "Anotações" },
   { id: "financeiro", label: "Financeiro" },
   { id: "reposicoes", label: "Reposições" },
@@ -246,6 +250,34 @@ export default function FichaAlunoPage() {
 
   useEffect(() => { carregarDiario(); }, [carregarDiario]);
 
+  // Plano de estudos (etapa 3): também carrega à parte e avisa se o banco ainda não o tem.
+  const [itensEstudo, setItensEstudo] = useState<ItemAluno[]>([]);
+  const [trilhasDisp, setTrilhasDisp] = useState<Pick<Trilha, "id" | "name" | "instrument" | "level">[]>([]);
+  const [planoOk, setPlanoOk] = useState(true);
+  const [planoErro, setPlanoErro] = useState<string | null>(null);
+  const [trilhaEscolhida, setTrilhaEscolhida] = useState("");
+  const [aplicandoTrilha, setAplicandoTrilha] = useState(false);
+  const [novoItem, setNovoItem] = useState({ title: "", competency: "", difficulty: 1, module_title: "", track_name: "" });
+  const [salvandoItem, setSalvandoItem] = useState(false);
+
+  const carregarPlano = useCallback(async () => {
+    if (!id) return;
+    try {
+      const r = await fetchPlano(id);
+      if (r.ok) { setPlanoOk(r.disponivel); setItensEstudo(r.itens); setTrilhasDisp(r.trilhas); }
+    } catch { /* a ficha segue sem o plano */ }
+  }, [id]);
+
+  useEffect(() => { carregarPlano(); }, [carregarPlano]);
+
+  const agirPlano = async (p: Promise<{ ok: true } | { ok: false; error: string }>) => {
+    const r = await p;
+    if (!r.ok) { setPlanoErro(r.error); return false; }
+    setPlanoErro(null);
+    await carregarPlano();
+    return true;
+  };
+
   const salvarNotaClick = async () => {
     if (!id) return;
     setNotaSalvando(true);
@@ -313,6 +345,9 @@ export default function FichaAlunoPage() {
   const comRegistro = ficha.aulas.filter(a => registros.has(a.id));
   const ultimoConteudo = comRegistro.find(a => a.status === "realizada" && registros.get(a.id)?.content_worked);
   const proximoPlanejado = comRegistro.find(a => registros.get(a.id)?.next_plan);
+  const grupos = agruparPlano(itensEstudo);
+  const evolucao = calcularEvolucao(itensEstudo);
+  const modulosExistentes = [...new Set(itensEstudo.map(i => `${i.track_name}\u0001${i.module_title}`))].map(k => { const [track_name, module_title] = k.split("\u0001"); return { track_name, module_title }; });
 
   const salvarRegistro = async (dados: Record<string, unknown>): Promise<string | null> => {
     if (!id || !aulaAberta) return "Aula não encontrada.";
@@ -389,7 +424,7 @@ export default function FichaAlunoPage() {
             {t.label}
           </button>
         ))}
-        {["Estudos", "Materiais"].map(t => (
+        {["Materiais"].map(t => (
           <span key={t} className="px-4 py-3 text-xs font-black uppercase tracking-widest whitespace-nowrap text-gray-700 cursor-default" title="Em breve">{t} <span className="text-[9px] normal-case tracking-normal">(em breve)</span></span>
         ))}
       </div>
@@ -411,6 +446,17 @@ export default function FichaAlunoPage() {
                   <dd className="text-white mt-1 break-words">{proximoPlanejado ? registros.get(proximoPlanejado.id)?.next_plan : <span className="text-gray-500">Nada planejado ainda.</span>}</dd></div>
               </dl>
             ) : <p className="text-sm text-gray-500">O diário ainda não foi ativado no banco.</p>}
+          </Painel>
+          <Painel titulo="Evolução nos estudos" acao={<ListChecks className="w-4 h-4 text-amber-500" />}>
+            {!planoOk ? <p className="text-sm text-gray-500">Os planos de estudo ainda não foram ativados no banco.</p> : evolucao.total === 0 ? (
+              <p className="text-sm text-gray-500">Nenhuma trilha aplicada a este aluno ainda.</p>
+            ) : (
+              <>
+                <p className="text-xl font-black text-white">{evolucao.percentual}% <span className="text-sm text-gray-500 font-medium">· {evolucao.concluidos} de {evolucao.total} concluídos</span></p>
+                <p className="text-xs text-gray-500 mt-1">{evolucao.emAndamento} em andamento · {evolucao.emRevisao} em revisão</p>
+                <button onClick={() => setAba("estudos")} className="mt-3 text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Ver plano de estudos</button>
+              </>
+            )}
           </Painel>
           <Painel titulo="Plano" acao={<Package className="w-4 h-4 text-amber-500" />}>
             <dl className="text-sm space-y-2">
@@ -478,6 +524,109 @@ export default function FichaAlunoPage() {
             </ul>
           )}
         </Painel>
+      )}
+
+      {aba === "estudos" && (
+        <div className="space-y-4">
+          {!planoOk ? (
+            <Painel titulo="Plano de estudos"><p className="text-sm text-gray-500">Os planos de estudo ainda não foram ativados no banco.</p></Painel>
+          ) : (
+            <>
+              {planoErro && <p role="alert" className="text-sm text-red-400 font-medium">{planoErro}</p>}
+
+              <Painel titulo="Evolução" acao={<ListChecks className="w-4 h-4 text-amber-500" />}>
+                {evolucao.total === 0 ? <p className="text-sm text-gray-500">Aplique uma trilha ou adicione conteúdos para acompanhar a evolução.</p> : (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-sm"><span className="text-white font-bold">Geral</span><span className="text-gray-400">{evolucao.concluidos}/{evolucao.total} · {evolucao.percentual}%</span></div>
+                      <div className="mt-1 h-2 rounded-full bg-gray-800" role="progressbar" aria-valuenow={evolucao.percentual} aria-valuemin={0} aria-valuemax={100} aria-label="Evolução geral"><div className="h-2 rounded-full bg-amber-500" style={{ width: `${evolucao.percentual}%` }} /></div>
+                    </div>
+                    {evolucao.porCompetencia.map(c => (
+                      <div key={c.nome}>
+                        <div className="flex justify-between text-xs"><span className="text-gray-300">{c.nome}</span><span className="text-gray-500">{c.concluidos}/{c.total} · {c.percentual}%</span></div>
+                        <div className="mt-1 h-1.5 rounded-full bg-gray-800" role="progressbar" aria-valuenow={c.percentual} aria-valuemin={0} aria-valuemax={100} aria-label={`Evolução em ${c.nome}`}><div className="h-1.5 rounded-full bg-sky-400" style={{ width: `${c.percentual}%` }} /></div>
+                      </div>
+                    ))}
+                    <p className="text-xs text-gray-500">{evolucao.planejados} planejados · {evolucao.emAndamento} em andamento · {evolucao.emRevisao} em revisão · {evolucao.naoIniciados} não iniciados</p>
+                  </div>
+                )}
+              </Painel>
+
+              <Painel titulo="Aplicar uma trilha">
+                {trilhasDisp.length === 0 ? (
+                  <p className="text-sm text-gray-500">Você ainda não tem trilhas. <Link href="/trilhas" className="text-amber-500 hover:text-amber-400 font-bold">Criar uma trilha</Link></p>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <select value={trilhaEscolhida} onChange={e => setTrilhaEscolhida(e.target.value)} aria-label="Escolher trilha" className="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-sm font-bold text-white min-w-[14rem]">
+                      <option value="">Escolha uma trilha</option>
+                      {trilhasDisp.map(t => <option key={t.id} value={t.id}>{t.name}{t.level ? ` · ${t.level}` : ""}</option>)}
+                    </select>
+                    <button disabled={!trilhaEscolhida || aplicandoTrilha} onClick={async () => {
+                      setAplicandoTrilha(true);
+                      const r = await aplicarTrilha(trilhaEscolhida, [aluno.id]);
+                      setAplicandoTrilha(false);
+                      if (!r.ok) { setPlanoErro(r.error); return; }
+                      setPlanoErro(null); setTrilhaEscolhida("");
+                      await carregarPlano();
+                    }} className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-gray-900 text-xs font-black uppercase tracking-widest disabled:opacity-40">{aplicandoTrilha ? "Aplicando…" : "Aplicar"}</button>
+                    <span className="text-xs text-gray-500">Aplicar de novo só acrescenta o que ainda falta.</span>
+                  </div>
+                )}
+              </Painel>
+
+              {grupos.map(g => (
+                <Painel key={g.track_name} titulo={`${g.track_name} (${g.concluidos}/${g.total})`}>
+                  <div className="space-y-5">
+                    {g.modulos.map(m => (
+                      <div key={m.module_title}>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-amber-500 mb-1">{m.module_title}</h3>
+                        <ul className="divide-y divide-gray-800">
+                          {m.itens.map((it, ii) => (
+                            <li key={it.id} className="py-2.5 flex items-start gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className={`text-sm font-bold break-words ${it.status === "concluido" ? "text-gray-500 line-through" : "text-white"}`}>{it.title}</p>
+                                <p className="text-xs text-gray-500">{ROTULO_DIFICULDADE[it.difficulty]}{it.competency ? ` · ${it.competency}` : ""}{it.objective ? ` · ${it.objective}` : ""}</p>
+                              </div>
+                              <select value={it.status} onChange={e => agirPlano(alterarStatusEstudo(aluno.id, it.id, e.target.value as StatusEstudo))} aria-label={`Status de ${it.title}`}
+                                className={`bg-gray-900 border rounded-xl px-2 py-1.5 text-xs font-bold ${it.status === "concluido" ? "border-green-500/40 text-green-400" : it.status === "em_revisao" ? "border-violet-500/40 text-violet-400" : it.status === "em_andamento" ? "border-sky-500/40 text-sky-400" : "border-gray-700 text-gray-300"}`}>
+                                {STATUS_ESTUDO.map(s => <option key={s} value={s}>{ROTULO_STATUS[s]}</option>)}
+                              </select>
+                              <button disabled={ii === 0} onClick={() => agirPlano(moverItemAluno(aluno.id, it.id, -1))} aria-label="Subir" className="p-1.5 rounded-lg text-gray-500 hover:text-white disabled:opacity-30"><ArrowUp className="w-4 h-4" /></button>
+                              <button disabled={ii === m.itens.length - 1} onClick={() => agirPlano(moverItemAluno(aluno.id, it.id, 1))} aria-label="Descer" className="p-1.5 rounded-lg text-gray-500 hover:text-white disabled:opacity-30"><ArrowDown className="w-4 h-4" /></button>
+                              <button onClick={() => { if (window.confirm("Remover este conteúdo do plano deste aluno?")) agirPlano(removerItemAluno(aluno.id, it.id)); }} aria-label="Remover" className="p-1.5 rounded-lg text-gray-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </Painel>
+              ))}
+
+              <Painel titulo="Adicionar conteúdo só para este aluno">
+                <datalist id="competencias-aluno">{SUGESTOES_COMPETENCIA.map(c => <option key={c} value={c} />)}</datalist>
+                <form onSubmit={async e => {
+                  e.preventDefault();
+                  setSalvandoItem(true);
+                  const ok = await agirPlano(adicionarItemAluno(aluno.id, { track_name: novoItem.track_name, module_title: novoItem.module_title }, novoItem));
+                  setSalvandoItem(false);
+                  if (ok) setNovoItem({ title: "", competency: "", difficulty: 1, module_title: novoItem.module_title, track_name: novoItem.track_name });
+                }} className="grid gap-3 md:grid-cols-2">
+                  <input value={novoItem.title} maxLength={160} onChange={e => setNovoItem({ ...novoItem, title: e.target.value })} placeholder="Título do conteúdo" aria-label="Título do conteúdo" required className="md:col-span-2 bg-gray-800/60 border border-gray-700 focus:border-amber-500 focus:outline-none rounded-2xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600" />
+                  <select value={`${novoItem.track_name}\u0001${novoItem.module_title}`} onChange={e => { const [t, m] = e.target.value.split("\u0001"); setNovoItem({ ...novoItem, track_name: t ?? "", module_title: m ?? "" }); }} aria-label="Módulo de destino" className="bg-gray-800/60 border border-gray-700 rounded-2xl px-4 py-2.5 text-sm text-white">
+                    <option value={"\u0001"}>Plano personalizado</option>
+                    {modulosExistentes.map(m => <option key={`${m.track_name}${m.module_title}`} value={`${m.track_name}\u0001${m.module_title}`}>{m.track_name} · {m.module_title}</option>)}
+                  </select>
+                  <input list="competencias-aluno" value={novoItem.competency} maxLength={60} onChange={e => setNovoItem({ ...novoItem, competency: e.target.value })} placeholder="Competência (opcional)" aria-label="Competência" className="bg-gray-800/60 border border-gray-700 focus:border-amber-500 focus:outline-none rounded-2xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600" />
+                  <select value={novoItem.difficulty} onChange={e => setNovoItem({ ...novoItem, difficulty: Number(e.target.value) })} aria-label="Dificuldade" className="bg-gray-800/60 border border-gray-700 rounded-2xl px-4 py-2.5 text-sm text-white">
+                    {[1, 2, 3].map(n => <option key={n} value={n}>{ROTULO_DIFICULDADE[n]}</option>)}
+                  </select>
+                  <div className="flex justify-end"><button type="submit" disabled={salvandoItem || !novoItem.title.trim()} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-gray-900 text-xs font-black uppercase tracking-widest disabled:opacity-40"><Plus className="w-4 h-4" />Adicionar</button></div>
+                </form>
+              </Painel>
+            </>
+          )}
+        </div>
       )}
 
       {aba === "notas" && (
