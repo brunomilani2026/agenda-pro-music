@@ -17,3 +17,8 @@ Origem: documento do Bruno (09/10/2026). Regra dele: auditar, propor, **aguardar
 - RN03: crédito de reposição só no 1º cancelamento da vida do aluno.
 - RLS por professor (`idusers_fk = auth.uid()`); aluno via `my_student_ids()`. Não existe "organização": tabelas novas seguem o mesmo padrão (dono = professor) e deixam espaço para organização no futuro.
 - Fotos hoje no Firebase (regra de Storage só `avatars/`); materiais novos irão para Supabase Storage.
+
+## Andamento (atualização 09/10/2026, noite)
+- Etapa 2 (diário + anotações): código publicado; SQL `03-*.sql` aplicado pelo Bruno; **resultado do teste de privacidade ainda a confirmar** (ele disse "rodei e testei").
+- Etapa 3 (plano de estudos): código publicado (`/trilhas`, aba Estudos na ficha); SQL `04-*.sql` (cópia em Drive/sql-etapa-3-estudos) **ainda não aplicado**; rodar 04-plano-de-estudos e depois 04-teste-privacidade (espera "RESULTADO: TUDO CERTO").
+- Decisões tomadas pelo Bruno ("faça o que achar melhor"): cópia de conteúdos por aluno; competência = texto livre com sugestões; tela "Trilhas" no menu.
