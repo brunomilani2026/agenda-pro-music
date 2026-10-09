@@ -3,15 +3,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AlertTriangle, ArrowLeft, CalendarClock, Edit3, Info, Package, RefreshCw, Repeat, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BookOpen, CalendarClock, Edit3, Info, Lock, Package, Plus, RefreshCw, Repeat, Trash2, Wallet, X } from "lucide-react";
 import { fetchFichaAluno } from "./actions";
+import { apagarNota, fetchDiario, salvarNota, salvarRegistroAula } from "./diario-actions";
 import type { FichaAluno, FichaAula, FichaFatura, FichaReposicao } from "@/lib/ficha-aluno";
+import { CAMPOS_TEXTO, MAX_CAMPO, VISIBILIDADE_PROFESSOR, type NotaAluno, type RegistroAula, type VisibilidadeNota } from "@/lib/diario-aluno";
 
-type Aba = "geral" | "aulas" | "financeiro" | "reposicoes";
+type Aba = "geral" | "aulas" | "diario" | "notas" | "financeiro" | "reposicoes";
 
 const ABAS: { id: Aba; label: string }[] = [
   { id: "geral", label: "Visão geral" },
   { id: "aulas", label: "Aulas" },
+  { id: "diario", label: "Diário" },
+  { id: "notas", label: "Anotações" },
   { id: "financeiro", label: "Financeiro" },
   { id: "reposicoes", label: "Reposições" },
 ];
@@ -69,7 +73,7 @@ function Painel({ titulo, children, acao }: { titulo: string; children: React.Re
   );
 }
 
-function LinhaAula({ a }: { a: FichaAula }) {
+function LinhaAula({ a, registro, onRegistro }: { a: FichaAula; registro?: RegistroAula; onRegistro?: (a: FichaAula) => void }) {
   const st = statusAula(a.status);
   return (
     <li className="flex items-start gap-3 py-2.5">
@@ -80,9 +84,76 @@ function LinhaAula({ a }: { a: FichaAula }) {
           {a.startTime && <span className="text-gray-400 font-medium"> · {a.startTime}{a.endTime ? `–${a.endTime}` : ""}</span>}
         </p>
         {(a.motivo || a.nota) && <p className="text-xs text-gray-500 mt-0.5 break-words">{a.motivo ?? a.nota}</p>}
+        {registro?.content_worked && <p className="text-xs text-amber-400/80 mt-0.5 break-words">Conteúdo: {registro.content_worked}</p>}
       </div>
-      <Selo cls={st.cls}>{st.label}</Selo>
+      <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <Selo cls={st.cls}>{st.label}</Selo>
+        {onRegistro && a.status !== "cancelada" && (
+          <button onClick={() => onRegistro(a)} className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">
+            <BookOpen className="w-3 h-3" />{registro ? "Ver registro" : "Registrar aula"}
+          </button>
+        )}
+      </div>
     </li>
+  );
+}
+
+function RegistroModal({ aula, registro, onFechar, onSalvar }: {
+  aula: FichaAula; registro?: RegistroAula; onFechar: () => void;
+  onSalvar: (dados: Record<string, unknown>) => Promise<string | null>;
+}) {
+  const [valores, setValores] = useState<Record<string, string>>(() => Object.fromEntries(CAMPOS_TEXTO.map(c => [c.k, (registro?.[c.k] as string | null) ?? ""])));
+  const [compartilhar, setCompartilhar] = useState(registro?.share_with_student ?? false);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const enviar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSalvando(true);
+    setErro(null);
+    const msg = await onSalvar({ ...valores, share_with_student: compartilhar });
+    if (msg) { setErro(msg); setSalvando(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4" role="dialog" aria-modal="true" aria-label="Registro da aula">
+      <form onSubmit={enviar} className="w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto bg-gray-900 border border-gray-800 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-black text-white tracking-tight">Registro da aula</h2>
+            <p className="text-xs text-gray-500">{fmtData(aula.date)} · {aula.startTime}{aula.endTime ? `–${aula.endTime}` : ""} · {statusAula(aula.status).label}</p>
+          </div>
+          <button type="button" onClick={onFechar} aria-label="Fechar" className="p-2 rounded-xl text-gray-500 hover:text-white hover:bg-gray-800"><X className="w-5 h-5" /></button>
+        </div>
+
+        {CAMPOS_TEXTO.map(c => (
+          <label key={c.k} className="block">
+            <span className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest mb-1.5 ${c.k === "private_note" ? "text-amber-500" : "text-gray-400"}`}>
+              {c.k === "private_note" && <Lock className="w-3 h-3" />}{c.label}
+            </span>
+            <textarea
+              value={valores[c.k]} maxLength={MAX_CAMPO} rows={c.k === "content_worked" || c.k === "homework" ? 3 : 2}
+              onChange={e => setValores(v => ({ ...v, [c.k]: e.target.value }))} placeholder={c.dica}
+              className="w-full bg-gray-800/60 border border-gray-700 focus:border-amber-500 focus:outline-none rounded-2xl px-4 py-3 text-sm text-white placeholder:text-gray-600 resize-y"
+            />
+          </label>
+        ))}
+
+        <label className="flex items-start gap-3 rounded-2xl border border-gray-800 bg-gray-800/40 p-4 cursor-pointer">
+          <input type="checkbox" checked={compartilhar} onChange={e => setCompartilhar(e.target.checked)} className="mt-1 accent-amber-500" />
+          <span className="text-sm text-gray-300">
+            <span className="font-bold text-white">Liberar para o aluno</span>
+            <span className="block text-xs text-gray-500 mt-0.5">O aluno poderá ver apenas: conteúdo trabalhado, atividades para casa, planejado para a próxima aula e a nota para o aluno. Os demais campos e a observação privada nunca aparecem para ele.</span>
+          </span>
+        </label>
+
+        {erro && <p role="alert" className="text-sm text-red-400 font-medium">{erro}</p>}
+        <div className="flex justify-end gap-3 pt-1">
+          <button type="button" onClick={onFechar} className="px-5 py-3 text-xs font-black uppercase tracking-widest text-gray-500 hover:text-white">Cancelar</button>
+          <button type="submit" disabled={salvando} className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-gray-900 text-xs font-black uppercase tracking-widest disabled:opacity-50">{salvando ? "Salvando…" : "Salvar registro"}</button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -149,6 +220,50 @@ export default function FichaAlunoPage() {
 
   useEffect(() => { carregar(); }, [carregar]);
 
+  // Diário e anotações (etapa 2) carregam à parte: se o banco ainda não tiver as
+  // tabelas, a ficha continua funcionando e só essas abas avisam.
+  const [registros, setRegistros] = useState<Map<string, RegistroAula>>(new Map());
+  const [notas, setNotas] = useState<NotaAluno[]>([]);
+  const [diarioOk, setDiarioOk] = useState(true);
+  const [aulaAberta, setAulaAberta] = useState<FichaAula | null>(null);
+  const [notaTexto, setNotaTexto] = useState("");
+  const [notaVis, setNotaVis] = useState<VisibilidadeNota>("professor_privada");
+  const [notaEditando, setNotaEditando] = useState<string | null>(null);
+  const [notaErro, setNotaErro] = useState<string | null>(null);
+  const [notaSalvando, setNotaSalvando] = useState(false);
+
+  const carregarDiario = useCallback(async () => {
+    if (!id) return;
+    try {
+      const r = await fetchDiario(id);
+      if (r.ok) {
+        setDiarioOk(r.disponivel);
+        setRegistros(new Map(r.registros.map(x => [x.idlesson_fk, x])));
+        setNotas(r.notas);
+      }
+    } catch { /* a ficha segue sem o diário */ }
+  }, [id]);
+
+  useEffect(() => { carregarDiario(); }, [carregarDiario]);
+
+  const salvarNotaClick = async () => {
+    if (!id) return;
+    setNotaSalvando(true);
+    setNotaErro(null);
+    const r = await salvarNota(id, notaVis, notaTexto, notaEditando ?? undefined);
+    setNotaSalvando(false);
+    if (!r.ok) { setNotaErro(r.error); return; }
+    setNotaTexto(""); setNotaEditando(null);
+    carregarDiario();
+  };
+
+  const apagarNotaClick = async (nid: string) => {
+    if (!id || !window.confirm("Apagar esta anotação?")) return;
+    const r = await apagarNota(id, nid);
+    if (!r.ok) { setNotaErro(r.error); return; }
+    carregarDiario();
+  };
+
   const aulasFiltradas = useMemo(() => {
     if (!ficha) return [];
     const hoje = new Date();
@@ -192,6 +307,21 @@ export default function FichaAlunoPage() {
   const proximas = ficha.aulas.filter(a => (a.status === "agendada" || a.status === "aguardando_pagamento") && resumo.proximaAula && (a.date + a.startTime) >= (resumo.proximaAula.date + resumo.proximaAula.startTime)).reverse().slice(0, 4);
   const ultimas = ficha.aulas.filter(a => a.status === "realizada").slice(0, 5);
   const plano = aluno.packagetype && aluno.packagetype !== "avulsa" ? aluno.packagetype : "Aula avulsa";
+
+  // Último conteúdo estudado = o mais recente entre as aulas realizadas com registro;
+  // próximo planejado = o "planejado para a próxima aula" do registro mais recente que o tenha.
+  const comRegistro = ficha.aulas.filter(a => registros.has(a.id));
+  const ultimoConteudo = comRegistro.find(a => a.status === "realizada" && registros.get(a.id)?.content_worked);
+  const proximoPlanejado = comRegistro.find(a => registros.get(a.id)?.next_plan);
+
+  const salvarRegistro = async (dados: Record<string, unknown>): Promise<string | null> => {
+    if (!id || !aulaAberta) return "Aula não encontrada.";
+    const r = await salvarRegistroAula(id, aulaAberta.id, dados);
+    if (!r.ok) return r.error;
+    setAulaAberta(null);
+    carregarDiario();
+    return null;
+  };
 
   return (
     <div className="flex flex-col w-full h-full bg-gray-900 p-4 md:p-8 rounded-tl-[2rem] animate-fade-in gap-6 overflow-y-auto">
@@ -272,6 +402,16 @@ export default function FichaAlunoPage() {
           <Painel titulo="Últimas aulas realizadas">
             {ultimas.length ? <ul className="divide-y divide-gray-800">{ultimas.map(a => <LinhaAula key={a.id} a={a} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma aula realizada ainda.</p>}
           </Painel>
+          <Painel titulo="Conteúdo das aulas" acao={<BookOpen className="w-4 h-4 text-amber-500" />}>
+            {diarioOk ? (
+              <dl className="text-sm space-y-3">
+                <div><dt className="text-[10px] font-black uppercase tracking-widest text-gray-500">Último conteúdo estudado</dt>
+                  <dd className="text-white mt-1 break-words">{ultimoConteudo ? <>{registros.get(ultimoConteudo.id)?.content_worked} <span className="text-gray-500">({fmtData(ultimoConteudo.date)})</span></> : <span className="text-gray-500">Ainda sem registro de aula.</span>}</dd></div>
+                <div><dt className="text-[10px] font-black uppercase tracking-widest text-gray-500">Próximo conteúdo planejado</dt>
+                  <dd className="text-white mt-1 break-words">{proximoPlanejado ? registros.get(proximoPlanejado.id)?.next_plan : <span className="text-gray-500">Nada planejado ainda.</span>}</dd></div>
+              </dl>
+            ) : <p className="text-sm text-gray-500">O diário ainda não foi ativado no banco.</p>}
+          </Painel>
           <Painel titulo="Plano" acao={<Package className="w-4 h-4 text-amber-500" />}>
             <dl className="text-sm space-y-2">
               <div className="flex justify-between gap-4"><dt className="text-gray-500">Plano contratado</dt><dd className="text-white font-bold capitalize">{plano}</dd></div>
@@ -306,9 +446,86 @@ export default function FichaAlunoPage() {
               <option value="90">Últimos 90 dias</option>
             </select>
           </div>
-          {aulasFiltradas.length ? <ul className="divide-y divide-gray-800">{aulasFiltradas.map(a => <LinhaAula key={a.id} a={a} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma aula nesse filtro.</p>}
+          {aulasFiltradas.length ? <ul className="divide-y divide-gray-800">{aulasFiltradas.map(a => <LinhaAula key={a.id} a={a} registro={registros.get(a.id)} onRegistro={diarioOk ? setAulaAberta : undefined} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma aula nesse filtro.</p>}
         </Painel>
       )}
+
+      {aba === "diario" && (
+        <Painel titulo={`Diário de aulas (${comRegistro.length})`} acao={<BookOpen className="w-4 h-4 text-amber-500" />}>
+          {!diarioOk ? <p className="text-sm text-gray-500">O diário ainda não foi ativado no banco.</p> : comRegistro.length === 0 ? (
+            <p className="text-sm text-gray-500">Nenhuma aula registrada ainda. Abra a aba Aulas e toque em "Registrar aula".</p>
+          ) : (
+            <ul className="space-y-3">
+              {comRegistro.map(a => {
+                const r = registros.get(a.id)!;
+                return (
+                  <li key={a.id} className="rounded-2xl border border-gray-800 bg-gray-900/40 p-4">
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <p className="text-sm font-bold text-white">{fmtData(a.date)} <span className="text-gray-500 font-medium">{diaSemana(a.date)} · {statusAula(a.status).label}</span></p>
+                      <div className="flex items-center gap-2">
+                        {r.share_with_student && <Selo cls="bg-sky-500/10 text-sky-400 border-sky-500/20">Liberado ao aluno</Selo>}
+                        <button onClick={() => setAulaAberta(a)} className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Editar</button>
+                      </div>
+                    </div>
+                    <dl className="text-sm space-y-1.5">
+                      {CAMPOS_TEXTO.filter(c => r[c.k]).map(c => (
+                        <div key={c.k}><dt className={`text-[10px] font-black uppercase tracking-widest ${c.k === "private_note" ? "text-amber-500" : "text-gray-500"}`}>{c.k === "private_note" ? "Privado · " : ""}{c.label}</dt><dd className="text-gray-200 whitespace-pre-wrap break-words">{r[c.k]}</dd></div>
+                      ))}
+                    </dl>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Painel>
+      )}
+
+      {aba === "notas" && (
+        <Painel titulo={`Anotações (${notas.length})`} acao={<Lock className="w-4 h-4 text-amber-500" />}>
+          {!diarioOk ? <p className="text-sm text-gray-500">As anotações ainda não foram ativadas no banco.</p> : (
+            <>
+              <div className="rounded-2xl border border-gray-800 bg-gray-900/40 p-4 space-y-3 mb-4">
+                <textarea value={notaTexto} maxLength={MAX_CAMPO} rows={3} onChange={e => setNotaTexto(e.target.value)} placeholder="Escreva uma anotação sobre este aluno"
+                  className="w-full bg-gray-800/60 border border-gray-700 focus:border-amber-500 focus:outline-none rounded-2xl px-4 py-3 text-sm text-white placeholder:text-gray-600 resize-y" aria-label="Texto da anotação" />
+                <div className="flex flex-wrap items-center gap-3">
+                  <select value={notaVis} onChange={e => setNotaVis(e.target.value as VisibilidadeNota)} aria-label="Quem pode ver" className="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs font-bold text-white">
+                    {VISIBILIDADE_PROFESSOR.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                  </select>
+                  <span className="text-xs text-gray-500">{VISIBILIDADE_PROFESSOR.find(o => o.v === notaVis)?.ajuda}</span>
+                  <div className="ml-auto flex gap-2">
+                    {notaEditando && <button onClick={() => { setNotaEditando(null); setNotaTexto(""); }} className="px-4 py-2 text-xs font-black uppercase tracking-widest text-gray-500 hover:text-white">Cancelar</button>}
+                    <button onClick={salvarNotaClick} disabled={notaSalvando || !notaTexto.trim()} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-gray-900 text-xs font-black uppercase tracking-widest disabled:opacity-40">
+                      <Plus className="w-4 h-4" />{notaEditando ? "Salvar edição" : "Adicionar"}
+                    </button>
+                  </div>
+                </div>
+                {notaErro && <p role="alert" className="text-sm text-red-400 font-medium">{notaErro}</p>}
+              </div>
+              {notas.length === 0 ? <p className="text-sm text-gray-500">Nenhuma anotação ainda.</p> : (
+                <ul className="space-y-2">
+                  {notas.map(n => (
+                    <li key={n.id} className="rounded-2xl border border-gray-800 bg-gray-900/40 p-4">
+                      <div className="flex items-center justify-between gap-3 mb-1.5">
+                        <Selo cls={n.visibility === "compartilhada" ? "bg-sky-500/10 text-sky-400 border-sky-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"}>
+                          {n.visibility === "compartilhada" ? "Compartilhada" : <><Lock className="w-3 h-3" />Privada</>}
+                        </Selo>
+                        <span className="text-xs text-gray-600">{fmtData(n.created_at)}{n.updated_at && n.updated_at.slice(0, 16) !== n.created_at.slice(0, 16) ? ` · editada ${fmtData(n.updated_at)}` : ""}</span>
+                      </div>
+                      <p className="text-sm text-gray-200 whitespace-pre-wrap break-words">{n.body}</p>
+                      <div className="flex gap-4 mt-2">
+                        <button onClick={() => { setNotaEditando(n.id); setNotaTexto(n.body); setNotaVis(n.visibility as VisibilidadeNota); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Editar</button>
+                        <button onClick={() => apagarNotaClick(n.id)} className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-300"><Trash2 className="w-3 h-3" />Apagar</button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </Painel>
+      )}
+
+      {aulaAberta && <RegistroModal key={aulaAberta.id} aula={aulaAberta} registro={registros.get(aulaAberta.id)} onFechar={() => setAulaAberta(null)} onSalvar={salvarRegistro} />}
 
       {aba === "financeiro" && (
         <Painel titulo={`Faturas (${ficha.faturas.length})`} acao={<Link href="/financeiro" className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Abrir o Financeiro</Link>}>
