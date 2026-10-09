@@ -231,3 +231,4 @@ Ordem no dia (≈30 min):
 - Lembrete de 1h agendado no banco novo (pg_cron `aula-1h`, a cada 15 min). Crons diários religados no `vercel.json`.
 - O job antigo no banco antigo continua existindo, mas chama o site novo com o segredo antigo (recebe 401, inofensivo). Some junto com o projeto antigo.
 - Falta: testes no domínio oficial; seção 3 (remover o desenvolvedor, trocar chaves e senhas); SPF/DMARC; apagar `conexoes.env` ao final.
+- **Fotos (Firebase):** após a troca o upload deu `storage/unauthorized`: a regra antiga do Storage tinha expirado. Corrigido em 09/10/2026 no console do Firebase (projeto do Bruno) com regra só para `avatars/{tipo}/{arquivo}`: leitura pública, escrita só imagem < 5 MB. Melhoria futura: mover as fotos para o Supabase Storage (exige login).
