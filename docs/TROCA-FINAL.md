@@ -152,3 +152,24 @@ Armadilhas ao migrar os dados do banco antigo:
 - [ ] Remover a rota `app/api/webhooks/asaas` (endpoint público sem uso) e o texto "Cobrança Asaas Automática" do banner.
 - [ ] O **cron de cobrança NÃO é do Asaas** (gera mensalidades, marca atrasos, bloqueia inadimplentes, manda lembretes): **manter**.
 - [ ] Depois da troca: revogar a chave de API do Asaas e remover o webhook configurado lá.
+
+---
+
+## 6. Estado da cópia e pendências (08/10/2026, fim do dia)
+
+Funcionando e testado na cópia (`agenda-pro-music-novo.vercel.app`): cadastro e login, aluno avulso/mensal, compra de pacote, **Pix estático validado com pagamento real** (QR idêntico ao gerado pelo app do Inter), botão "Já paguei", baixa manual, e-mails de notificação e de confirmação de cadastro (EmailJS), sem limite de alunos.
+
+Lições que valem na troca final:
+- **Pix:** o Inter recusa QR com `txid` próprio; usamos `***` (igual ao QR do Inter). Nome do recebedor `Bruno T Milani` e cidade `Braganca Paul` (abreviações do Inter). Variáveis: `PIX_CHAVE`, `PIX_NOME_RECEBEDOR`, `PIX_CIDADE`.
+- **Aluno avulso não recebe fatura automática:** ele compra crédito em "Planos e Créditos". Só mensal/trimestral/semestral tem fatura gerada pelo cron.
+- **Testar papéis diferentes:** usar janelas/navegadores separados (cadastrar aluno no mesmo navegador troca a sessão do professor).
+- **E-mail no modo escuro do Gmail:** título dourado nos modelos (`#fbbf24`); branco/fundos explícitos foram invertidos pelo Gmail.
+
+Pendências de segurança (fazer antes de entrar dado real):
+- [ ] Gerar **nova chave secreta do Supabase novo** (a atual foi colada no chat) e atualizar `.env.local` e Vercel.
+- [ ] Gerar **nova Private Key do EmailJS** se a que apareceu no chat foi a atual; colar só no `.env.local`/Vercel.
+- [ ] A conta EmailJS nova usa o Gmail `musicobrunomilani@gmail.com`; trocar para SMTP do Brevo/domínio na troca final (só muda o Service ID).
+- [ ] E-mails do Supabase Auth (confirmar cadastro, redefinir senha) ainda usam o envio padrão do Supabase (limite baixo): configurar SMTP próprio e colar os templates de `email-templates/supabase`.
+- [ ] Vercel: remover variáveis do Asaas (`ASAAS_SANDBOX`) se ainda existirem.
+
+Dados importados do site antigo (configuração, sem dados de aluno): pacotes (Avulsa R$150, Mensal R$450, Trimestral R$1.250, Anual R$2.300; 180 dias), instrumentos (Cavaquinho, Banjo, Banjo/Cavaquinho) e bio do professor. Alunos, aulas, pagamentos e contas de login ficam para o ensaio de migração e a troca final.
