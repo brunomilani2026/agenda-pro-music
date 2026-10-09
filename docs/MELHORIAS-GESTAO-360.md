@@ -33,3 +33,8 @@ Origem: documento do Bruno (09/10/2026). Regra dele: auditar, propor, **aguardar
 - O 1º teste de privacidade achou **recursão infinita** entre as regras de `material` e `material_share`; corrigido com as funções `material_is_mine` e `material_shared_with_me` (SECURITY DEFINER). Teste final: **TUDO CERTO (18 de 18)**.
 - Limites: 50 MB por arquivo; plano grátis do Supabase = 1 GB de storage no total (vídeo pesado: preferir link do YouTube).
 - Falta: etapa 5 (tarefas e entregas, com envio de áudio/vídeo pelo aluno) e etapa 6 (portal do aluno ampliado: ver materiais, notas compartilhadas, plano de estudos; indicadores e alertas).
+
+## Etapa 6 (portal do aluno, parte de leitura) publicada em 09/10/2026
+- Telas do aluno: `/aluno/diario` (registros liberados via visão `lesson_record_shared`, recados compartilhados e anotações PESSOAIS CRUD), `/aluno/estudos` (plano somente leitura + evolução), `/aluno/materiais` (compartilhados; arquivo por link temporário de 2 min, caminho nunca sai do servidor).
+- Sem SQL novo. Pendente: Bruno validar logado como aluno (janela anônima!).
+- Falta: etapa 5 (tarefas/entregas, aluno envia áudio/vídeo; exige novas tabelas + bucket de entregas) e indicadores/alertas ampliados.
