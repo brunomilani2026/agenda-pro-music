@@ -132,8 +132,8 @@ Estado público de `agendapromusic.com.br`:
 - **EmailJS atual:** conta aberta em 23/06/2026 em nome de Bruno Milani com `notificacoes@agendapromusic.com.br`; recuperação de senha depende de a caixa voltar a receber.
 
 Tarefas:
-- [ ] Adicionar **1 registro MX** na DNS da Vercel (conta antiga): tipo MX, nome `@`, valor `sh00112.hostgator.com.br`, prioridade 0. Só adicionar; não editar nem apagar nenhum outro registro.
-- [ ] Testar recebimento (enviar do Gmail para `notificacoes@`), configurar encaminhamento no cPanel para o Gmail.
+- [x] (feito 09/10/2026) Adicionar **1 registro MX** na DNS da Vercel (conta antiga): tipo MX, nome `@`, valor `sh00112.hostgator.com.br`, prioridade 0. Só adicionar; não editar nem apagar nenhum outro registro.
+- [x] (feito, chegou) Testar recebimento (enviar do Gmail para `notificacoes@`), configurar encaminhamento no cPanel para o Gmail.
 - [ ] Recuperar a conta EmailJS antiga (ou manter a conta nova do Bruno e descartar a antiga).
 - [ ] Descobrir o dono da conta Brevo (recuperar senha por `notificacoes@` depois do MX) e decidir se mantém.
 - [ ] Depois da troca: adicionar SPF (incluindo o Brevo) e DMARC para melhorar a entrega.
