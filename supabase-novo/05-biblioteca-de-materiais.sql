@@ -105,17 +105,30 @@ CREATE POLICY material_owner ON public.material AS PERMISSIVE FOR ALL TO authent
     )
   );
 
+-- Funções internas (SECURITY DEFINER) que quebram a recursão entre as regras de material e
+-- material_share: uma regra não pode consultar a tabela cuja regra consulta a primeira.
+CREATE OR REPLACE FUNCTION public.material_is_mine(mid uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
+AS $$ SELECT EXISTS (SELECT 1 FROM public.material WHERE id = mid AND idusers_fk = auth.uid()) $$;
+
+CREATE OR REPLACE FUNCTION public.material_shared_with_me(mid uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
+AS $$ SELECT EXISTS (SELECT 1 FROM public.material_share WHERE material_fk = mid AND idstudent_fk IN (SELECT public.my_student_ids())) $$;
+
+REVOKE ALL ON FUNCTION public.material_is_mine(uuid), public.material_shared_with_me(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.material_is_mine(uuid), public.material_shared_with_me(uuid) TO authenticated;
+
 -- Aluno: só lê os materiais compartilhados com ele
 DROP POLICY IF EXISTS material_student_read ON public.material;
 CREATE POLICY material_student_read ON public.material AS PERMISSIVE FOR SELECT TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.material_share s WHERE s.material_fk = id AND s.idstudent_fk IN (SELECT my_student_ids())));
+  USING (public.material_shared_with_me(id));
 
 DROP POLICY IF EXISTS material_share_owner ON public.material_share;
 CREATE POLICY material_share_owner ON public.material_share AS PERMISSIVE FOR ALL TO authenticated
   USING (idusers_fk = auth.uid() OR is_admin())
   WITH CHECK (is_admin() OR (
     idusers_fk = auth.uid()
-    AND EXISTS (SELECT 1 FROM public.material m WHERE m.id = material_fk AND m.idusers_fk = auth.uid())
+    AND public.material_is_mine(material_fk)
     AND EXISTS (SELECT 1 FROM public.student st WHERE st.idstudent = idstudent_fk AND st.idusers_fk = auth.uid())
   ));
 
@@ -128,7 +141,7 @@ CREATE POLICY lesson_material_owner ON public.lesson_material AS PERMISSIVE FOR 
   USING (idusers_fk = auth.uid() OR is_admin())
   WITH CHECK (is_admin() OR (
     idusers_fk = auth.uid()
-    AND EXISTS (SELECT 1 FROM public.material m WHERE m.id = material_fk AND m.idusers_fk = auth.uid())
+    AND public.material_is_mine(material_fk)
     AND EXISTS (SELECT 1 FROM public.lesson l WHERE l.idlesson = lesson_fk AND l.idusers_fk = auth.uid())
   ));
 
