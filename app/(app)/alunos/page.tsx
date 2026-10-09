@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAppContext, Student, PaymentMethod } from "../AppContext";
 import { createAgendaStudent, updateAgendaStudent, deleteAgendaStudent, createAgendaLesson, resendActivationEmail, createGradeInvoices } from "../agenda/actions";
 import { sendManualNotification, broadcastToMyStudents } from "@/app/actions/notification.actions";
@@ -19,6 +20,7 @@ const STATUS_PRIORITY: Record<string, number> = { bloqueado: 0, inativo: 1, ativ
 const NO_EXPIRATION = '9999-12-31';
 
 export default function AlunosPage() {
+  const router = useRouter();
   const { students, setStudents, reloadLoadedLessons, instruments, teacherProfile, refreshStudents } = useAppContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Student>>({});
@@ -47,6 +49,20 @@ export default function AlunosPage() {
   useEffect(() => {
     refreshStudents({ maxAgeMs: 30_000 });
   }, [refreshStudents]);
+
+  // A ficha do aluno (/alunos/[id]) tem um botão "Editar" que volta para cá com
+  // ?editar=<id>: abre o formulário de edição desse aluno e limpa o endereço.
+  // window.location em vez de useSearchParams para não exigir <Suspense>.
+  useEffect(() => {
+    if (students.length === 0) return;
+    const id = new URLSearchParams(window.location.search).get('editar');
+    if (!id) return;
+    const alvo = students.find(s => s.id === id);
+    window.history.replaceState(null, '', '/alunos');
+    if (!alvo) return;
+    setFormData({ ...alvo, cpf: alvo.cpf ? maskCPF(alvo.cpf) : '', phone: alvo.phone || '' });
+    setIsModalOpen(true);
+  }, [students]);
 
   // Uma ordenação só, consumida pelos cards (mobile) e pela tabela (desktop) —
   // reordenar em cada um copiaria o array duas vezes por render, e o componente
@@ -304,7 +320,7 @@ export default function AlunosPage() {
             return (
               <div key={student.id} className="bg-gray-800/40 rounded-3xl border border-gray-800 ring-1 ring-white/5 shadow-xl p-4">
                 <div className="flex items-start gap-3">
-                  <button type="button" onClick={openEdit} className="flex items-center gap-3 text-left flex-1 min-w-0">
+                  <button type="button" onClick={() => router.push(`/alunos/${student.id}`)} className="flex items-center gap-3 text-left flex-1 min-w-0" title={`Abrir ficha de ${student.name}`}>
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center text-xl font-black text-amber-500 border border-gray-700 shadow-lg shrink-0">
                       {student.name.charAt(0)}
                     </div>
@@ -444,14 +460,7 @@ export default function AlunosPage() {
                     <td className="px-8 py-6">
                       <button
                         type="button"
-                        onClick={() => {
-                          setFormData({
-                            ...student,
-                            cpf: student.cpf ? maskCPF(student.cpf) : '',
-                            phone: student.phone || '',
-                          });
-                          setIsModalOpen(true);
-                        }}
+                        onClick={() => router.push(`/alunos/${student.id}`)}
                         className="flex items-center gap-4 text-left rounded-2xl -m-2 p-2 hover:bg-amber-500/5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition-colors w-full"
                         title={`Abrir ficha de ${student.name}`}
                       >

@@ -89,9 +89,11 @@ export default function Topbar({
 
   const isStudentPortal = pathname?.startsWith("/aluno/");
   const meta = PAGE_META[pathname] ?? (
-    isStudentPortal
-      ? { title: "Área do Aluno", subtitle: "Bem-vindo ao seu painel" }
-      : { title: "Área do Professor", subtitle: "Bem-vindo à sua área" }
+    pathname?.startsWith("/alunos/")
+      ? { title: "Ficha do Aluno", subtitle: "Aulas, financeiro e reposições em um só lugar" }
+      : isStudentPortal
+        ? { title: "Área do Aluno", subtitle: "Bem-vindo ao seu painel" }
+        : { title: "Área do Professor", subtitle: "Bem-vindo à sua área" }
   );
 
   return (
