@@ -201,3 +201,25 @@ Alunos inativos hoje: **Artur Lacerda** e **Luis Montenegro** (inativados na có
 
 - [ ] **No site ATUAL (antigo), a regra NÃO existe**: inativar lá não impede os avisos. Até a troca final, esses dois ainda podem receber avisos do site antigo (lembrete de atraso e de aula). Para silenciar já: cancelar/renegociar as faturas abertas deles e cancelar as aulas futuras (Luis tem 7), ou aguardar a troca.
 - [ ] Na troca final, conferir se continuam `inativo` depois de rodar `migrar.mjs --aplicar`.
+
+---
+
+## 9. Roteiro do dia da troca (preparado em 09/10/2026)
+
+**Achado importante:** o banco antigo tem um job do pg_cron (`*/15 * * * *`) que chama `/api/cron/aula-1h` (lembrete de 1h) e funciona (192 execuções ok em 2 dias). Ele fica no banco, **não vem na migração**. Recriar com `agendar-cron.mjs`. Os outros dois crons (cobrança 11:30 UTC e lembretes 12:00 UTC) ficam no `vercel.json`; a versão pronta é `vercel.json.troca` (o `vercel.json` atual segue com `crons: []` até o dia).
+
+Ensaio de migração rodado em 09/10/2026: todas as contagens OK, 25 contas com senha, totais financeiros idênticos.
+
+Ordem no dia (≈30 min):
+1. [ ] Avisar alunos/professores (manutenção curta).
+2. [ ] Site antigo em manutenção (sem escritas).
+3. [ ] Backup do banco antigo no Drive.
+4. [ ] `node migrar.mjs` (ensaio) e `node migrar.mjs --aplicar` (em `C:\dev\migracao-agenda`).
+5. [ ] Vercel novo: `NEXT_PUBLIC_APP_URL=https://www.agendapromusic.com.br`; `NEXT_PUBLIC_EMAILJS_SERVICE_ID` (SMTP do domínio); **Redeploy**.
+6. [ ] Supabase novo → Authentication → URL Configuration: Site URL e Redirect `https://www.agendapromusic.com.br` (+ `/**`).
+7. [ ] Copiar `vercel.json.troca` por cima de `vercel.json`, commit e push.
+8. [ ] Mover o domínio (`agendapromusic.com.br` e `www`) do projeto antigo para o novo.
+9. [ ] `node agendar-cron.mjs --aplicar` (cria o lembrete de 1h no banco novo).
+10. [ ] Testar no domínio oficial: login professor e aluno, criar aula, e-mail, Pix, foto, "Já paguei".
+11. [ ] Desligar o job antigo no banco ANTIGO (`select cron.unschedule(1)`), para não duplicar lembretes se o site antigo voltar.
+12. [ ] Fim da manutenção + aviso. Depois, seção 3 (remover o desenvolvedor).
