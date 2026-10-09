@@ -27,3 +27,9 @@ Origem: documento do Bruno (09/10/2026). Regra dele: auditar, propor, **aguardar
 - [x] Etapa 2 (diário + anotações): SQL aplicado (tabelas lesson_record, student_note, visão lesson_record_shared). Teste de privacidade: "TUDO CERTO (18 de 18)".
 - [x] Etapa 3 (plano de estudos): SQL aplicado (study_track, study_module, study_item, student_study_item). Teste de privacidade: "TUDO CERTO (12 de 12)". Bruno já criou a 1ª trilha na tela /trilhas.
 - Próximas: etapa 4 (materiais, Supabase Storage privado), 5 (tarefas e entregas), 6 (portal do aluno ampliado + indicadores). Pendências da troca: GitHub antigo (senha+2FA); apagar projetos antigos Vercel/Supabase por volta de 16–24/10/2026 (backup JSON no Drive).
+
+## Etapa 4 (09/10/2026, noite): biblioteca de materiais NO AR e validada
+- Código publicado (`/materiais`, aba Materiais na ficha, materiais no registro da aula). SQL `05-*.sql` aplicado pelo Bruno (cópia no Drive: sql-etapa-4-materiais).
+- O 1º teste de privacidade achou **recursão infinita** entre as regras de `material` e `material_share`; corrigido com as funções `material_is_mine` e `material_shared_with_me` (SECURITY DEFINER). Teste final: **TUDO CERTO (18 de 18)**.
+- Limites: 50 MB por arquivo; plano grátis do Supabase = 1 GB de storage no total (vídeo pesado: preferir link do YouTube).
+- Falta: etapa 5 (tarefas e entregas, com envio de áudio/vídeo pelo aluno) e etapa 6 (portal do aluno ampliado: ver materiais, notas compartilhadas, plano de estudos; indicadores e alertas).
