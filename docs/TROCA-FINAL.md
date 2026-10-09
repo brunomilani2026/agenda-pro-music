@@ -232,3 +232,18 @@ Ordem no dia (≈30 min):
 - O job antigo no banco antigo continua existindo, mas chama o site novo com o segredo antigo (recebe 401, inofensivo). Some junto com o projeto antigo.
 - Falta: testes no domínio oficial; seção 3 (remover o desenvolvedor, trocar chaves e senhas); SPF/DMARC; apagar `conexoes.env` ao final.
 - **Fotos (Firebase):** após a troca o upload deu `storage/unauthorized`: a regra antiga do Storage tinha expirado. Corrigido em 09/10/2026 no console do Firebase (projeto do Bruno) com regra só para `avatars/{tipo}/{arquivo}`: leitura pública, escrita só imagem < 5 MB. Melhoria futura: mover as fotos para o Supabase Storage (exige login).
+
+## 11. Limpeza de acessos (09/10/2026, 17h20)
+Feito:
+- [x] Vercel antiga (conta siteagendapromusic@gmail.com, Hobby = sem membros): login por GitHub desconectado, passkey/2FA ativada, 2 tokens antigos revogados, senha do Gmail trocada.
+- [x] Supabase antigo: só 1 membro (Bruno, Owner); senha do banco trocada (senha antiga recusada); chaves `default` secreta e publicável apagadas e recriadas; **legacy JWT secret revogado** (anon/service_role antigas mortas).
+- [x] Firebase: só o Bruno no IAM.
+- Observação: o repo antigo `siteagendapromusic-cloud/calendario-de-aulas-de-musica` é de outra conta GitHub (a conta `brunomilani2026` é só convidada); não bloqueia nada, o site novo usa o repo próprio.
+
+Falta:
+- [ ] MFA na conta Supabase antiga (confirmar).
+- [ ] GitHub `siteagendapromusic-cloud`: redefinir senha via Gmail + 2FA + remover colaboradores.
+- [ ] Supabase NOVO: trocar a senha do banco (a atual está em `conexoes.env`).
+- [ ] EmailJS, Brevo, Asaas: trocar senha, revogar chaves antigas; Asaas: remover webhook.
+- [ ] Apagar `C:\dev\migracao-agenda\conexoes.env` e `env.local.backup-antes-migracao`; SPF/DMARC.
+- [ ] Após 7–15 dias: apagar projeto antigo (Vercel e Supabase), guardando o backup JSON do Drive.
