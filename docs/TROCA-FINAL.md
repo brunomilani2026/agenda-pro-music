@@ -190,3 +190,14 @@ Para a troca final (repetir com dados do dia):
 - [ ] **O desenvolvedor é administrador do site antigo** (`ricardomarinho1101@gmail.com`): não migrar essa conta; remover do site antigo ao desligá-lo.
 - [ ] Recolocar `NEXT_PUBLIC_EMAILJS_SERVICE_ID=service_1fw7xqm` na Vercel e no `.env.local` (foi esvaziado durante o ensaio para não notificar alunos reais).
 - [ ] Trocar as senhas de banco dos dois projetos Supabase e apagar `conexoes.env`.
+
+---
+
+## 8. Alunos inativos (pedido do Bruno, 09/10/2026)
+
+Regra nova no código: **aluno com status `inativo` fica fora de lembretes de cobrança e de atraso, lembretes de aula (diário e 1h antes), bloqueio automático por atraso e geração de mensalidade** (`lib/aluno-inativo.ts`). Faturas abertas e aulas futuras dele **permanecem** no sistema, só sem aviso/cobrança automática.
+
+Alunos inativos hoje: **Artur Lacerda** e **Luis Montenegro** (inativados na cópia e no script `migrar.mjs`, passo 2e, para sobreviver à migração final).
+
+- [ ] **No site ATUAL (antigo), a regra NÃO existe**: inativar lá não impede os avisos. Até a troca final, esses dois ainda podem receber avisos do site antigo (lembrete de atraso e de aula). Para silenciar já: cancelar/renegociar as faturas abertas deles e cancelar as aulas futuras (Luis tem 7), ou aguardar a troca.
+- [ ] Na troca final, conferir se continuam `inativo` depois de rodar `migrar.mjs --aplicar`.
