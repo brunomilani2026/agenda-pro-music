@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       // pegar o id (notificação/e-mail). Sem conta de aluno → só marca lido.
       const { data: student } = await supabase
         .from('student')
-        .select('idstudent')
+        .select('idstudent, status')
         .eq('idusers_fk', lesson.idusers_fk)
         .ilike('name', lesson.studentname)
         .limit(1)
@@ -88,6 +88,8 @@ export async function GET(request: NextRequest) {
       // aluno vinculado a cada execução do cron.
       sentLessonIds.push(lesson.idlesson);
       if (!student) continue;
+      // Aluno inativo não recebe lembrete de aula.
+      if (student.status === 'inativo') continue;
 
       const whenLabel = lesson.date === today ? 'hoje' : 'amanhã';
       const msg = `Sua aula de ${lesson.instrument || 'música'}${lesson.teachername ? ` com ${lesson.teachername}` : ''} é ${whenLabel}, ${fmtDate(lesson.date)} às ${lesson.starttime}.`;

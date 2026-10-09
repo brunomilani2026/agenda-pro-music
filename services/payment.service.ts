@@ -4,6 +4,7 @@ import { Payment } from '@/types/database.types';
 import { LessonService } from '@/services/lesson.service';
 import { AsaasClient, methodToBillingType, packageTypeToCycle } from '@/lib/asaas';
 import { gerarPixEstatico, pixConfigurado, txidDoPagamento } from '@/lib/pix';
+import { alunosInativos } from '@/lib/aluno-inativo';
 import { emailStudent, emailTeacher } from '@/lib/notify-email';
 import { afterResponse } from '@/lib/after-response';
 import { getLocalISODate, addMonthsKeepDay, projectNextMensalidadeDue, normalizePaymentMethod, nowInSaoPaulo } from '@/lib/utils';
@@ -550,7 +551,8 @@ export class PaymentService {
       .select('name, idusers_fk, status')
       .eq('idstudent', studentId)
       .maybeSingle();
-    if (!studentData || studentData.status === 'bloqueado') return;
+    // Inativo fica fora do bloqueio automático (e dos avisos dele).
+    if (!studentData || studentData.status === 'bloqueado' || studentData.status === 'inativo') return;
 
     const { error: blockErr } = await supabase
       .from('student')
@@ -810,9 +812,13 @@ export class PaymentService {
       return { in5days: 0, dueToday: 0 };
     }
 
+    // Aluno inativo não recebe lembrete de cobrança.
+    const inativos = await alunosInativos((rows || []).map(r => r.idstudent_fk));
+
     let in5days = 0;
     let dueToday = 0;
     for (const p of rows || []) {
+      if (p.idstudent_fk && inativos.has(p.idstudent_fk)) continue;
       if (!p.idstudent_fk) continue;
       const isToday = p.duedate === today;
       if (isToday && (p.created_at || '').slice(0, 10) === today) continue;
@@ -902,10 +908,14 @@ export class PaymentService {
       return 0;
     }
 
+    // Aluno inativo não recebe aviso de atraso.
+    const inativos = await alunosInativos((rows || []).map(r => r.idstudent_fk));
+
     let sent = 0;
     const avisados = new Set<string>();
 
     for (const p of rows || []) {
+      if (p.idstudent_fk && inativos.has(p.idstudent_fk)) continue;
       if (!p.idstudent_fk || avisados.has(p.idstudent_fk)) continue;
 
       const dias = daysBetweenIso(p.duedate, today);

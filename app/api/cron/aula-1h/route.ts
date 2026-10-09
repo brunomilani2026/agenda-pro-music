@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLocalISODate } from '@/lib/utils';
 import { createAdminClient } from '@/lib/supabase/server';
+import { alunosInativos } from '@/lib/aluno-inativo';
 import { emailStudent, lessonObsForEmail, lessonMeetLineForEmail, lessonEmailCta, getTeacherMeetLinks } from '@/lib/notify-email';
 
 // Sem cache: precisa ler o estado atual das aulas a cada execução.
@@ -111,6 +112,15 @@ export async function GET(request: NextRequest) {
         msg: `Sua aula de ${t.lesson.instrument || 'música'}${t.lesson.teachername ? ` com ${t.lesson.teachername}` : ''} começa daqui a pouco: hoje, ${fmtDate(t.lesson.date)} às ${t.lesson.starttime}.`,
       }));
 
+    if (!targets.length) {
+      return NextResponse.json({ date: today, window: '65min', reminded: 0, emailed: 0 });
+    }
+
+    // Aluno inativo não recebe lembrete de aula.
+    const inativos = await alunosInativos(targets.map(t => t.studentId));
+    for (let i = targets.length - 1; i >= 0; i--) {
+      if (inativos.has(targets[i].studentId)) targets.splice(i, 1);
+    }
     if (!targets.length) {
       return NextResponse.json({ date: today, window: '65min', reminded: 0, emailed: 0 });
     }
