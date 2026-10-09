@@ -8,17 +8,21 @@ import { fetchFichaAluno } from "./actions";
 import { apagarNota, fetchDiario, salvarNota, salvarRegistroAula } from "./diario-actions";
 import { adicionarItemAluno, alterarStatusEstudo, fetchPlano, moverItemAluno, removerItemAluno } from "./estudos-actions";
 import { aplicarTrilha } from "../../trilhas/actions";
+import { compartilharComAluno, definirMateriaisDaAula, fetchMateriaisAluno, materiaisDaAula, retirarDoAluno } from "./materiais-actions";
+import { enderecoDoMaterial } from "../../materiais/actions";
+import { formatarTamanho, type Material } from "@/lib/materiais";
 import { agruparPlano, calcularEvolucao, ROTULO_DIFICULDADE, ROTULO_STATUS, STATUS_ESTUDO, SUGESTOES_COMPETENCIA, type ItemAluno, type StatusEstudo, type Trilha } from "@/lib/estudos";
 import type { FichaAluno, FichaAula, FichaFatura, FichaReposicao } from "@/lib/ficha-aluno";
 import { CAMPOS_TEXTO, MAX_CAMPO, VISIBILIDADE_PROFESSOR, type NotaAluno, type RegistroAula, type VisibilidadeNota } from "@/lib/diario-aluno";
 
-type Aba = "geral" | "aulas" | "diario" | "estudos" | "notas" | "financeiro" | "reposicoes";
+type Aba = "geral" | "aulas" | "diario" | "estudos" | "materiais" | "notas" | "financeiro" | "reposicoes";
 
 const ABAS: { id: Aba; label: string }[] = [
   { id: "geral", label: "Visão geral" },
   { id: "aulas", label: "Aulas" },
   { id: "diario", label: "Diário" },
   { id: "estudos", label: "Estudos" },
+  { id: "materiais", label: "Materiais" },
   { id: "notas", label: "Anotações" },
   { id: "financeiro", label: "Financeiro" },
   { id: "reposicoes", label: "Reposições" },
@@ -102,20 +106,28 @@ function LinhaAula({ a, registro, onRegistro }: { a: FichaAula; registro?: Regis
   );
 }
 
-function RegistroModal({ aula, registro, onFechar, onSalvar }: {
+function RegistroModal({ aula, registro, biblioteca, carregarSelecionados, onFechar, onSalvar }: {
   aula: FichaAula; registro?: RegistroAula; onFechar: () => void;
-  onSalvar: (dados: Record<string, unknown>) => Promise<string | null>;
+  biblioteca: Material[]; carregarSelecionados: () => Promise<string[]>;
+  onSalvar: (dados: Record<string, unknown>, materiais: string[]) => Promise<string | null>;
 }) {
   const [valores, setValores] = useState<Record<string, string>>(() => Object.fromEntries(CAMPOS_TEXTO.map(c => [c.k, (registro?.[c.k] as string | null) ?? ""])));
   const [compartilhar, setCompartilhar] = useState(registro?.share_with_student ?? false);
+  const [materiaisAula, setMateriaisAula] = useState<Set<string>>(new Set());
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    carregarSelecionados().then(ids => { if (vivo) setMateriaisAula(new Set(ids)); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [carregarSelecionados]);
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
     setSalvando(true);
     setErro(null);
-    const msg = await onSalvar({ ...valores, share_with_student: compartilhar });
+    const msg = await onSalvar({ ...valores, share_with_student: compartilhar }, [...materiaisAula]);
     if (msg) { setErro(msg); setSalvando(false); }
   };
 
@@ -142,6 +154,21 @@ function RegistroModal({ aula, registro, onFechar, onSalvar }: {
             />
           </label>
         ))}
+
+        {biblioteca.length > 0 && (
+          <fieldset className="rounded-2xl border border-gray-800 bg-gray-800/40 p-4">
+            <legend className="px-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Materiais usados nesta aula</legend>
+            <ul className="max-h-40 overflow-y-auto divide-y divide-gray-800">
+              {biblioteca.map(m => (
+                <li key={m.id}><label className="flex items-center gap-3 py-2 cursor-pointer">
+                  <input type="checkbox" className="accent-amber-500" checked={materiaisAula.has(m.id)}
+                    onChange={() => setMateriaisAula(s => { const n = new Set(s); n.has(m.id) ? n.delete(m.id) : n.add(m.id); return n; })} />
+                  <span className="text-sm text-white break-words">{m.title}</span>
+                </label></li>
+              ))}
+            </ul>
+          </fieldset>
+        )}
 
         <label className="flex items-start gap-3 rounded-2xl border border-gray-800 bg-gray-800/40 p-4 cursor-pointer">
           <input type="checkbox" checked={compartilhar} onChange={e => setCompartilhar(e.target.checked)} className="mt-1 accent-amber-500" />
@@ -270,6 +297,35 @@ export default function FichaAlunoPage() {
 
   useEffect(() => { carregarPlano(); }, [carregarPlano]);
 
+  // Biblioteca de materiais (etapa 4): carrega à parte e avisa se o banco ainda não a tem.
+  const [matComp, setMatComp] = useState<Material[]>([]);
+  const [matBib, setMatBib] = useState<Material[]>([]);
+  const [matOk, setMatOk] = useState(true);
+  const [matErro, setMatErro] = useState<string | null>(null);
+
+  const carregarMateriais = useCallback(async () => {
+    if (!id) return;
+    try {
+      const r = await fetchMateriaisAluno(id);
+      if (r.ok) { setMatOk(r.disponivel); setMatComp(r.compartilhados); setMatBib(r.biblioteca); }
+    } catch { /* a ficha segue sem materiais */ }
+  }, [id]);
+
+  useEffect(() => { carregarMateriais(); }, [carregarMateriais]);
+
+  const carregarSelecionadosAula = useCallback(async (): Promise<string[]> => {
+    if (!id || !aulaAberta) return [];
+    const r = await materiaisDaAula(id, aulaAberta.id);
+    return r.ok ? r.ids : [];
+  }, [id, aulaAberta]);
+
+  const abrirMaterial = async (mid: string) => {
+    const janela = window.open("", "_blank");
+    const r = await enderecoDoMaterial(mid);
+    if (!r.ok) { janela?.close(); setMatErro(r.error); return; }
+    if (janela) { janela.opener = null; janela.location.href = r.url; } else window.location.href = r.url;
+  };
+
   const agirPlano = async (p: Promise<{ ok: true } | { ok: false; error: string }>) => {
     const r = await p;
     if (!r.ok) { setPlanoErro(r.error); return false; }
@@ -349,10 +405,15 @@ export default function FichaAlunoPage() {
   const evolucao = calcularEvolucao(itensEstudo);
   const modulosExistentes = [...new Set(itensEstudo.map(i => `${i.track_name}\u0001${i.module_title}`))].map(k => { const [track_name, module_title] = k.split("\u0001"); return { track_name, module_title }; });
 
-  const salvarRegistro = async (dados: Record<string, unknown>): Promise<string | null> => {
+  const salvarRegistro = async (dados: Record<string, unknown>, materiais: string[]): Promise<string | null> => {
     if (!id || !aulaAberta) return "Aula não encontrada.";
     const r = await salvarRegistroAula(id, aulaAberta.id, dados);
     if (!r.ok) return r.error;
+    // Só mexe nos vínculos se a biblioteca existe (senão não há o que vincular).
+    if (matOk) {
+      const v = await definirMateriaisDaAula(id, aulaAberta.id, materiais);
+      if (!v.ok) { carregarDiario(); return `Registro salvo, mas não foi possível vincular os materiais: ${v.error}`; }
+    }
     setAulaAberta(null);
     carregarDiario();
     return null;
@@ -423,9 +484,6 @@ export default function FichaAlunoPage() {
             className={`px-4 py-3 text-xs font-black uppercase tracking-widest whitespace-nowrap border-b-2 transition-colors ${aba === t.id ? "border-amber-500 text-amber-500" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
             {t.label}
           </button>
-        ))}
-        {["Materiais"].map(t => (
-          <span key={t} className="px-4 py-3 text-xs font-black uppercase tracking-widest whitespace-nowrap text-gray-700 cursor-default" title="Em breve">{t} <span className="text-[9px] normal-case tracking-normal">(em breve)</span></span>
         ))}
       </div>
 
@@ -629,6 +687,48 @@ export default function FichaAlunoPage() {
         </div>
       )}
 
+      {aba === "materiais" && (
+        <div className="space-y-4">
+          {!matOk ? (
+            <Painel titulo="Materiais"><p className="text-sm text-gray-500">A biblioteca de materiais ainda não foi ativada no banco.</p></Painel>
+          ) : (
+            <>
+              {matErro && <p role="alert" className="text-sm text-red-400 font-medium">{matErro}</p>}
+              <Painel titulo={`Materiais deste aluno (${matComp.length})`} acao={<Link href="/materiais" className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Abrir a biblioteca</Link>}>
+                {matComp.length === 0 ? <p className="text-sm text-gray-500">Nenhum material compartilhado com este aluno ainda.</p> : (
+                  <ul className="divide-y divide-gray-800">
+                    {matComp.map(m => (
+                      <li key={m.id} className="py-2.5 flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-white break-words">{m.title}</p>
+                          <p className="text-xs text-gray-500">{[m.kind === "arquivo" ? "Arquivo" : m.kind === "youtube" ? "YouTube" : "Link", m.category, formatarTamanho(m.size_bytes)].filter(Boolean).join(" · ")}</p>
+                        </div>
+                        <button onClick={() => abrirMaterial(m.id)} className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-900 text-[10px] font-black uppercase tracking-widest">Abrir</button>
+                        <button onClick={async () => { const r = await retirarDoAluno(aluno.id, m.id); if (!r.ok) setMatErro(r.error); else { setMatErro(null); carregarMateriais(); } }} className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-300">Retirar</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Painel>
+              <Painel titulo="Compartilhar da biblioteca">
+                {matBib.length === 0 ? (
+                  <p className="text-sm text-gray-500">Não há outros materiais na biblioteca. <Link href="/materiais" className="text-amber-500 hover:text-amber-400 font-bold">Adicionar material</Link></p>
+                ) : (
+                  <ul className="divide-y divide-gray-800">
+                    {matBib.map(m => (
+                      <li key={m.id} className="py-2.5 flex items-center gap-2">
+                        <p className="min-w-0 flex-1 text-sm text-white break-words">{m.title}<span className="text-xs text-gray-500"> · {m.kind === "arquivo" ? "Arquivo" : m.kind === "youtube" ? "YouTube" : "Link"}{m.category ? ` · ${m.category}` : ""}</span></p>
+                        <button onClick={async () => { const r = await compartilharComAluno(aluno.id, m.id); if (!r.ok) setMatErro(r.error); else { setMatErro(null); carregarMateriais(); } }} className="px-3 py-1.5 rounded-xl bg-gray-800 border border-gray-700 hover:border-amber-500/50 text-[10px] font-black uppercase tracking-widest text-white">Compartilhar</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Painel>
+            </>
+          )}
+        </div>
+      )}
+
       {aba === "notas" && (
         <Painel titulo={`Anotações (${notas.length})`} acao={<Lock className="w-4 h-4 text-amber-500" />}>
           {!diarioOk ? <p className="text-sm text-gray-500">As anotações ainda não foram ativadas no banco.</p> : (
@@ -674,7 +774,7 @@ export default function FichaAlunoPage() {
         </Painel>
       )}
 
-      {aulaAberta && <RegistroModal key={aulaAberta.id} aula={aulaAberta} registro={registros.get(aulaAberta.id)} onFechar={() => setAulaAberta(null)} onSalvar={salvarRegistro} />}
+      {aulaAberta && <RegistroModal key={aulaAberta.id} aula={aulaAberta} registro={registros.get(aulaAberta.id)} biblioteca={matOk ? [...matComp, ...matBib] : []} carregarSelecionados={carregarSelecionadosAula} onFechar={() => setAulaAberta(null)} onSalvar={salvarRegistro} />}
 
       {aba === "financeiro" && (
         <Painel titulo={`Faturas (${ficha.faturas.length})`} acao={<Link href="/financeiro" className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Abrir o Financeiro</Link>}>

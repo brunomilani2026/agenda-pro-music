@@ -93,6 +93,8 @@ export default function Topbar({
       ? { title: "Ficha do Aluno", subtitle: "Aulas, financeiro e reposições em um só lugar" }
       : pathname === "/trilhas" || pathname?.startsWith("/trilhas/")
       ? { title: "Trilhas de Estudo", subtitle: "Monte planos e aplique aos seus alunos" }
+      : pathname === "/materiais"
+      ? { title: "Biblioteca de Materiais", subtitle: "Arquivos e links para as suas aulas" }
       : isStudentPortal
         ? { title: "Área do Aluno", subtitle: "Bem-vindo ao seu painel" }
         : { title: "Área do Professor", subtitle: "Bem-vindo à sua área" }

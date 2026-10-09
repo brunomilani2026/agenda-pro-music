@@ -14,6 +14,7 @@ import {
   Briefcase,
   Layers,
   ListChecks,
+  FolderOpen,
   Settings,
   Bell,
   MessageCircleHeart
@@ -78,6 +79,11 @@ const professorGroups: NavGroup[] = [
         label: "Trilhas",
         href: "/trilhas",
         icon: <ListChecks className="w-5 h-5" />,
+      },
+      {
+        label: "Materiais",
+        href: "/materiais",
+        icon: <FolderOpen className="w-5 h-5" />,
       },
     ]
   },
