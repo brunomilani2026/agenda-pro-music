@@ -22,3 +22,8 @@ Origem: documento do Bruno (09/10/2026). Regra dele: auditar, propor, **aguardar
 - Etapa 2 (diário + anotações): código publicado; SQL `03-*.sql` aplicado pelo Bruno; **resultado do teste de privacidade ainda a confirmar** (ele disse "rodei e testei").
 - Etapa 3 (plano de estudos): código publicado (`/trilhas`, aba Estudos na ficha); SQL `04-*.sql` (cópia em Drive/sql-etapa-3-estudos) **ainda não aplicado**; rodar 04-plano-de-estudos e depois 04-teste-privacidade (espera "RESULTADO: TUDO CERTO").
 - Decisões tomadas pelo Bruno ("faça o que achar melhor"): cópia de conteúdos por aluno; competência = texto livre com sugestões; tela "Trilhas" no menu.
+
+## Confirmações (09/10/2026, ~18h40)
+- [x] Etapa 2 (diário + anotações): SQL aplicado (tabelas lesson_record, student_note, visão lesson_record_shared). Teste de privacidade: "TUDO CERTO (18 de 18)".
+- [x] Etapa 3 (plano de estudos): SQL aplicado (study_track, study_module, study_item, student_study_item). Teste de privacidade: "TUDO CERTO (12 de 12)". Bruno já criou a 1ª trilha na tela /trilhas.
+- Próximas: etapa 4 (materiais, Supabase Storage privado), 5 (tarefas e entregas), 6 (portal do aluno ampliado + indicadores). Pendências da troca: GitHub antigo (senha+2FA); apagar projetos antigos Vercel/Supabase por volta de 16–24/10/2026 (backup JSON no Drive).
