@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BookOpen, CalendarClock, Edit3, Info, ListChecks, Lock, Package, Plus, RefreshCw, Repeat, Trash2, Wallet, X } from "lucide-react";
-import { fetchFichaAluno } from "./actions";
+import { definirNivelMusical, fetchFichaAluno } from "./actions";
+import { NIVEIS_MUSICAIS, ROTULO_NIVEL } from "@/lib/nivel-musical";
 import { apagarNota, fetchDiario, salvarNota, salvarRegistroAula } from "./diario-actions";
 import { adicionarItemAluno, alterarStatusEstudo, fetchPlano, moverItemAluno, removerItemAluno } from "./estudos-actions";
 import { aplicarTrilha } from "../../trilhas/actions";
@@ -57,6 +58,27 @@ const STATUS_FATURA: Record<string, { label: string; cls: string }> = {
 
 function Selo({ cls, children }: { cls: string; children: React.ReactNode }) {
   return <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${cls}`}>{children}</span>;
+}
+
+function NivelMusicalSelect({ alunoId, inicial }: { alunoId: string; inicial: string | null }) {
+  const [nivel, setNivel] = useState(inicial ?? "");
+  const [msg, setMsg] = useState<string | null>(null);
+  const mudar = async (novo: string) => {
+    const anterior = nivel;
+    setNivel(novo); setMsg(null);
+    const r = await definirNivelMusical(alunoId, novo);
+    if (!r.ok) { setNivel(anterior); setMsg(r.error); }
+  };
+  return (
+    <label className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-gray-500 font-medium">
+      <span className="text-[10px] font-black uppercase tracking-widest">Nível musical</span>
+      <select value={nivel} onChange={e => mudar(e.target.value)} aria-label="Nível musical do aluno" className="bg-gray-800/60 border border-gray-700 focus:border-amber-500 focus:outline-none rounded-xl px-2.5 py-1 text-xs text-white">
+        <option value="">Não definido</option>
+        {NIVEIS_MUSICAIS.map(n => <option key={n} value={n}>{ROTULO_NIVEL[n]}</option>)}
+      </select>
+      {msg && <span role="alert" className="text-red-400">{msg}</span>}
+    </label>
+  );
 }
 
 function Cartao({ titulo, valor, detalhe, destaque }: { titulo: string; valor: React.ReactNode; detalhe?: string; destaque?: "aviso" | "perigo" }) {
@@ -442,6 +464,7 @@ export default function FichaAlunoPage() {
                 {[aluno.instrument, plano, aluno.desde ? `aluno desde ${fmtData(aluno.desde).slice(3)}` : null].filter(Boolean).join(" · ")}
               </p>
               <p className="text-xs text-gray-600 truncate">{[aluno.email, aluno.phone].filter(Boolean).join(" · ") || "Sem contato cadastrado"}</p>
+              <NivelMusicalSelect alunoId={aluno.id} inicial={aluno.nivelMusical} />
             </div>
           </div>
           <div className="flex items-center gap-3">

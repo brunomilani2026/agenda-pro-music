@@ -4,6 +4,8 @@ import { getSessionUser } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { getLocalISODate, nowInSaoPaulo } from '@/lib/utils';
 import { aulasDoAluno, montarFicha, type FichaAluno } from '@/lib/ficha-aluno';
+import { alunoDoProfessor } from '@/lib/professor-ctx';
+import { limparNivel } from '@/lib/nivel-musical';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -74,4 +76,18 @@ export async function fetchFichaAluno(
     console.error('Ficha do aluno: erro inesperado:', err?.message || err);
     return { ok: false, error: 'Erro inesperado ao carregar a ficha.' };
   }
+}
+
+/** Define (ou limpa) o nível musical do aluno. Só o professor dono do aluno consegue. */
+export async function definirNivelMusical(idstudent: string, nivel: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
+  const limpo = limparNivel(nivel);
+  if (limpo === undefined) return { ok: false, error: 'Nível inválido.' };
+  const ctx = await alunoDoProfessor(idstudent);
+  if (!ctx) return { ok: false, error: 'Aluno não encontrado.' };
+  const { error } = await ctx.supabase.from('student').update({ music_level: limpo }).eq('idstudent', idstudent).eq('idusers_fk', ctx.dbUser.idusers);
+  if (error) {
+    console.error('Nível musical: erro ao salvar:', error.message);
+    return { ok: false, error: /music_level/.test(error.message) ? 'O nível musical ainda não foi ativado no banco.' : 'Não foi possível salvar o nível.' };
+  }
+  return { ok: true };
 }

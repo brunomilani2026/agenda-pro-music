@@ -53,7 +53,7 @@ export type FichaAluno = {
   aluno: {
     id: string; name: string; email: string; phone: string; instrument: string;
     packagetype: string; expirationdate: string | null; status: string;
-    lessonPrice: number; totalLessons: number; usedLessons: number; notes: string;
+    lessonPrice: number; totalLessons: number; usedLessons: number; notes: string; nivelMusical: string | null;
     avatarUrl: string | null; desde: string | null;
   };
   resumo: {
@@ -221,6 +221,7 @@ export function montarFicha(params: {
     aluno: {
       id: aluno.idstudent,
       name: aluno.name || '',
+      nivelMusical: (aluno.music_level as string) || null,
       email: aluno.email || '',
       phone: aluno.phone || '',
       instrument: aluno.instrument || '',
