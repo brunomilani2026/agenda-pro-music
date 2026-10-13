@@ -5,7 +5,7 @@
 // decidem o que ele enxerga; os filtros abaixo são uma segunda trava.
 
 import { getSessionStudent } from '@/lib/session';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { limparNotaPessoal, tabelaAusente } from '@/lib/diario-aluno';
 import type { ItemAluno } from '@/lib/estudos';
 import type { Material } from '@/lib/materiais';
@@ -31,6 +31,25 @@ export async function fetchMeusEstudos(): Promise<{ ok: true; disponivel: boolea
     if (tabelaAusente(error)) return { ok: true, disponivel: false, itens: [] };
     if (error) { console.error('Portal: erro ao buscar estudos:', error.message); return { ok: false, error: 'Não foi possível carregar seu plano de estudos.' }; }
     return { ok: true, disponivel: true, itens: (data ?? []) as ItemAluno[] };
+  } catch (e: any) { console.error('Portal: erro inesperado:', e?.message || e); return { ok: false, error: ERRO }; }
+}
+
+/**
+ * O aluno marca (ou desmarca) um conteúdo do próprio plano como concluído.
+ * O banco só deixa o aluno LER o plano, então a gravação passa por aqui com o cliente de servidor, travada em
+ * três pontos: só o aluno logado, só um item DELE, e só o campo de status (concluído ou, ao desfazer, em andamento).
+ */
+export async function marcarEstudoConcluido(itemId: string, concluido: boolean): Promise<{ ok: true; status: 'concluido' | 'em_andamento' } | Falha> {
+  try {
+    if (!UUID.test(itemId) || typeof concluido !== 'boolean') return { ok: false, error: 'Conteúdo não encontrado.' };
+    const ctx = await alunoLogado();
+    if (!ctx) return { ok: false, error: 'Sessão inválida. Faça login novamente.' };
+    const status = concluido ? 'concluido' : 'em_andamento';
+    const { data, error } = await createAdminClient().from('student_study_item')
+      .update({ status, status_changed_at: new Date().toISOString() })
+      .eq('id', itemId).eq('idstudent_fk', ctx.student.idstudent).select('id');
+    if (error) { console.error('Portal: erro ao marcar estudo:', error.message); return { ok: false, error: ERRO }; }
+    return data?.length ? { ok: true, status } : { ok: false, error: 'Conteúdo não encontrado.' };
   } catch (e: any) { console.error('Portal: erro inesperado:', e?.message || e); return { ok: false, error: ERRO }; }
 }
 

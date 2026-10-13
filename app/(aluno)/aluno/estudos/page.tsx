@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, ListChecks } from "lucide-react";
-import { fetchMeusEstudos } from "../portal-actions";
+import { CheckCircle2, ExternalLink, ListChecks } from "lucide-react";
+import { fetchMeusEstudos, marcarEstudoConcluido } from "../portal-actions";
 import { agruparPlano, calcularEvolucao, ROTULO_DIFICULDADE, ROTULO_STATUS, separarLinks, type ItemAluno } from "@/lib/estudos";
 
 const COR_STATUS: Record<string, string> = {
@@ -24,6 +24,15 @@ export default function MeusEstudosPage() {
       if (r.ok) { setDisponivel(r.disponivel); setItens(r.itens); } else setErro(r.error);
     }).catch(() => setErro("Não foi possível carregar seu plano de estudos.")).finally(() => setCarregando(false));
   }, []);
+
+  const [salvandoId, setSalvandoId] = useState<string | null>(null);
+  const marcar = async (it: ItemAluno, concluido: boolean) => {
+    setSalvandoId(it.id); setErro(null);
+    const r = await marcarEstudoConcluido(it.id, concluido);
+    setSalvandoId(null);
+    if (!r.ok) { setErro(r.error); return; }
+    setItens(lista => lista.map(x => (x.id === it.id ? { ...x, status: r.status, status_changed_at: new Date().toISOString() } : x)));
+  };
 
   const grupos = useMemo(() => agruparPlano(itens), [itens]);
   const evolucao = useMemo(() => calcularEvolucao(itens), [itens]);
@@ -87,7 +96,14 @@ export default function MeusEstudosPage() {
                               )}
                             </>); })()}
                           </div>
+                          <div className="shrink-0 flex flex-col items-end gap-2">
                           <span className={`shrink-0 inline-flex px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${COR_STATUS[it.status] ?? COR_STATUS.nao_iniciado}`}>{ROTULO_STATUS[it.status] ?? it.status}</span>
+                            {it.status === "concluido" ? (
+                              <button type="button" disabled={salvandoId === it.id} onClick={() => marcar(it, false)} className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-white disabled:opacity-40">{salvandoId === it.id ? "Salvando…" : "Desfazer"}</button>
+                            ) : (
+                              <button type="button" disabled={salvandoId === it.id} onClick={() => marcar(it, true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-green-500/40 text-green-400 hover:bg-green-500/10 text-[10px] font-black uppercase tracking-widest disabled:opacity-40"><CheckCircle2 className="w-3.5 h-3.5" />{salvandoId === it.id ? "Salvando…" : "Concluir"}</button>
+                            )}
+                          </div>
                         </li>
                       ))}
                     </ul>
