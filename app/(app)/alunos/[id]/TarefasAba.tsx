@@ -19,8 +19,10 @@ const COR: Record<StatusTarefa, string> = {
 };
 const campo = "w-full bg-gray-800/60 border border-gray-700 focus:border-amber-500 focus:outline-none rounded-2xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600";
 
-type Form = { title: string; description: string; due_date: string; materiais: Set<string> };
-const formVazio = (): Form => ({ title: "", description: "", due_date: "", materiais: new Set() });
+type ProximaAula = { date: string; startTime: string } | null;
+// Prazo: "proxima" = data da próxima aula agendada do aluno (padrão); "data" = escolhida à mão; "nenhum".
+type Form = { title: string; description: string; due_date: string; materiais: Set<string>; modo: "proxima" | "data" | "nenhum" };
+const formVazio = (proxima: ProximaAula): Form => ({ title: "", description: "", due_date: "", materiais: new Set(), modo: proxima ? "proxima" : "nenhum" });
 
 function Painel({ titulo, acao, children }: { titulo: string; acao?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -31,20 +33,50 @@ function Painel({ titulo, acao, children }: { titulo: string; acao?: React.React
   );
 }
 
-function FormTarefa({ inicial, biblioteca, rotulo, onSalvar, onCancelar }: {
-  inicial: Form; biblioteca: { id: string; title: string }[]; rotulo: string;
+function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCancelar }: {
+  inicial: Form; biblioteca: { id: string; title: string }[]; proximaAula: ProximaAula; rotulo: string;
   onSalvar: (f: Form) => Promise<string | null>; onCancelar: () => void;
 }) {
   const [f, setF] = useState(inicial);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+
+  const enviar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErro(null);
+    // O prazo final sai do modo escolhido; quem chama recebe só a data pronta (ou vazia = sem prazo).
+    let due = "";
+    if (f.modo === "proxima") due = proximaAula?.date ?? "";
+    else if (f.modo === "data") {
+      if (!f.due_date) { setErro("Escolha a data do prazo."); return; }
+      due = f.due_date;
+    }
+    setSalvando(true);
+    const m = await onSalvar({ ...f, due_date: due });
+    if (m) { setErro(m); setSalvando(false); }
+  };
+
+  const opcao = "flex items-center gap-2 text-sm text-gray-200 cursor-pointer";
   return (
-    <form onSubmit={async e => { e.preventDefault(); setSalvando(true); setErro(null); const m = await onSalvar(f); if (m) { setErro(m); setSalvando(false); } }} className="rounded-2xl border border-gray-700 bg-gray-900/60 p-4 grid gap-3 md:grid-cols-2">
+    <form onSubmit={enviar} className="rounded-2xl border border-gray-700 bg-gray-900/60 p-4 grid gap-3 md:grid-cols-2">
       <input className={`${campo} md:col-span-2`} placeholder="Título da tarefa (ex.: Gravar a batida de samba)" value={f.title} maxLength={160} onChange={e => setF({ ...f, title: e.target.value })} aria-label="Título da tarefa" required />
       <textarea className={`${campo} md:col-span-2`} rows={3} placeholder="Descrição: o que o aluno deve fazer" value={f.description} maxLength={5000} onChange={e => setF({ ...f, description: e.target.value })} aria-label="Descrição" />
-      <label className="text-xs text-gray-400 font-bold">Prazo sugerido (opcional)
-        <input type="date" className={`${campo} mt-1`} value={f.due_date} onChange={e => setF({ ...f, due_date: e.target.value })} />
-      </label>
+      <fieldset className="rounded-2xl border border-gray-800 p-3 md:col-span-2 space-y-2">
+        <legend className="px-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Prazo sugerido</legend>
+        <label className={`${opcao} ${!proximaAula ? "opacity-50 cursor-not-allowed" : ""}`}>
+          <input type="radio" name="prazo" className="accent-amber-500" checked={f.modo === "proxima"} disabled={!proximaAula} onChange={() => setF({ ...f, modo: "proxima" })} />
+          {proximaAula ? <span>Até a próxima aula: <strong className="text-white">{fmtData(proximaAula.date)}</strong>{proximaAula.startTime ? ` às ${proximaAula.startTime}` : ""}</span> : <span>Até a próxima aula (este aluno não tem aula agendada)</span>}
+        </label>
+        <label className={opcao}>
+          <input type="radio" name="prazo" className="accent-amber-500" checked={f.modo === "data"} onChange={() => setF({ ...f, modo: "data" })} />
+          <span>Escolher outra data</span>
+          {f.modo === "data" && <input type="date" className="bg-gray-800/60 border border-gray-700 focus:border-amber-500 focus:outline-none rounded-xl px-3 py-1.5 text-sm text-white" value={f.due_date} onChange={e => setF({ ...f, due_date: e.target.value })} aria-label="Data do prazo" />}
+        </label>
+        <label className={opcao}>
+          <input type="radio" name="prazo" className="accent-amber-500" checked={f.modo === "nenhum"} onChange={() => setF({ ...f, modo: "nenhum" })} />
+          <span>Sem prazo</span>
+        </label>
+      </fieldset>
       {biblioteca.length > 0 && (
         <fieldset className="rounded-2xl border border-gray-800 p-3 md:col-span-2">
           <legend className="px-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Material de apoio (compartilhado com o aluno)</legend>
@@ -80,7 +112,7 @@ function RetornoBox({ onEnviar }: { onEnviar: (texto: string) => Promise<string 
   );
 }
 
-export default function TarefasAba({ alunoId }: { alunoId: string }) {
+export default function TarefasAba({ alunoId, proximaAula }: { alunoId: string; proximaAula: ProximaAula }) {
   const [tarefas, setTarefas] = useState<TarefaCompleta[]>([]);
   const [biblioteca, setBiblioteca] = useState<{ id: string; title: string }[]>([]);
   const [disponivel, setDisponivel] = useState(true);
@@ -121,7 +153,7 @@ export default function TarefasAba({ alunoId }: { alunoId: string }) {
       <Painel titulo={`Tarefas (${tarefas.length})`} acao={!criando && <button onClick={() => setCriando(true)} className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400"><Plus className="w-3.5 h-3.5" />Nova tarefa</button>}>
         {criando && (
           <div className="mb-4">
-            <FormTarefa inicial={formVazio()} biblioteca={biblioteca} rotulo="Criar tarefa" onCancelar={() => setCriando(false)}
+            <FormTarefa inicial={formVazio(proximaAula)} biblioteca={biblioteca} proximaAula={proximaAula} rotulo="Criar tarefa" onCancelar={() => setCriando(false)}
               onSalvar={async f => { const r = await criarTarefa([alunoId], { title: f.title, description: f.description, due_date: f.due_date }, [...f.materiais]); if (!r.ok) return r.error; setCriando(false); await carregar(); return null; }} />
           </div>
         )}
@@ -132,7 +164,7 @@ export default function TarefasAba({ alunoId }: { alunoId: string }) {
             {tarefas.map(t => (
               <li key={t.id} className="rounded-2xl border border-gray-800 bg-gray-900/40 p-4 space-y-3">
                 {editando === t.id ? (
-                  <FormTarefa inicial={{ title: t.title, description: t.description ?? "", due_date: t.due_date ?? "", materiais: new Set(t.materiais.map(m => m.id)) }} biblioteca={biblioteca} rotulo="Salvar" onCancelar={() => setEditando(null)}
+                  <FormTarefa inicial={{ title: t.title, description: t.description ?? "", due_date: t.due_date ?? "", materiais: new Set(t.materiais.map(m => m.id)), modo: t.due_date ? "data" : "nenhum" }} biblioteca={biblioteca} proximaAula={proximaAula} rotulo="Salvar" onCancelar={() => setEditando(null)}
                     onSalvar={async f => { const r = await editarTarefa(alunoId, t.id, { title: f.title, description: f.description, due_date: f.due_date }, [...f.materiais]); if (!r.ok) return r.error; setEditando(null); await carregar(); return null; }} />
                 ) : (
                   <>

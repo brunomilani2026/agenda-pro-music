@@ -731,7 +731,7 @@ export default function FichaAlunoPage() {
         </div>
       )}
 
-      {aba === "tarefas" && <TarefasAba alunoId={aluno.id} />}
+      {aba === "tarefas" && <TarefasAba alunoId={aluno.id} proximaAula={resumo.proximaAula} />}
 
       {aba === "notas" && (
         <Painel titulo={`Anotações (${notas.length})`} acao={<Lock className="w-4 h-4 text-amber-500" />}>
