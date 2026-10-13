@@ -49,7 +49,7 @@ export function montarAlertas(p: {
   const saida: AlertaPainel[] = [];
 
   for (const aluno of p.alunos) {
-    if ((aluno.status ?? 'ativo') !== 'ativo') continue;
+    if ((aluno.status ?? 'ativo') !== 'ativo' || aluno.is_test) continue;
     const id = aluno.idstudent as string;
     const nome = (aluno.name as string) || 'Aluno';
     const add = (categoria: CategoriaAlerta, nivel: NivelAlerta, texto: string) => saida.push({ alunoId: id, aluno: nome, categoria, nivel, texto });

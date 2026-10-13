@@ -68,7 +68,13 @@ export async function GET(request: NextRequest) {
 
     // 2. Consequências por aluno (dedup — um aluno pode ter várias faturas)
     const studentIds = [...new Set((overdueRows || []).map(r => r.idstudent_fk).filter(Boolean))];
+    // Aluno de teste (is_test) nunca sofre bloqueio nem aviso por atraso.
+    const { data: testRows } = studentIds.length
+      ? await supabase.from('student').select('idstudent').in('idstudent', studentIds).eq('is_test', true)
+      : { data: [] as { idstudent: string }[] };
+    const testSet = new Set((testRows || []).map(r => r.idstudent));
     for (const studentId of studentIds) {
+      if (testSet.has(studentId)) continue;
       await PaymentService.applyOverdueConsequences(studentId);
     }
 

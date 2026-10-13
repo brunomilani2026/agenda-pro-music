@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
           if ((data ?? []).length < 1000) break;
         }
         const [{ data: alunos }, { data: bloqueios }, { data: folgas }] = await Promise.all([
-          db.from('student').select('idstudent, name, status, packagetype, expirationdate, idusers_fk').eq('idusers_fk', dono),
+          db.from('student').select('idstudent, name, status, packagetype, expirationdate, idusers_fk, is_test').eq('idusers_fk', dono),
           db.from('blocked_slot').select('date, starttime, endtime').eq('idusers_fk', dono).gte('date', hoje),
           db.from('teacher_day_off').select('day_of_week').eq('idusers_fk', dono),
         ]);

@@ -71,7 +71,7 @@ export function planejarRenovacao(p: {
 
   for (const aluno of p.alunos) {
     const status = aluno.status ?? 'ativo';
-    if (status !== 'ativo' && status !== 'bloqueado') continue;
+    if ((status !== 'ativo' && status !== 'bloqueado') || aluno.is_test) continue;
     if (!aluno.idusers_fk || (aluno.packagetype ?? 'avulsa') === 'avulsa') continue;
 
     const aulasDele = aulasDoAluno(aluno, p.aulas).map(l => ({ ui: mapDbLessonToUI(l), l }));

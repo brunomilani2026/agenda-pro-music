@@ -654,6 +654,7 @@ export class PaymentService {
       .from('student')
       .select('idstudent, idusers_fk, packagetype, lessonprice, paymentmethod, asaas_subscription_id, expirationdate')
       .eq('status', 'ativo')
+      .eq('is_test', false)
       .not('expirationdate', 'is', null)
       .lte('expirationdate', horizon);
     if (error) {

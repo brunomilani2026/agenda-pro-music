@@ -210,7 +210,7 @@ export class AdminDashboardService {
       supabase.from('lesson_request').select('id, type, status, created_at, updated_at'),
       supabase
         .from('student')
-        .select('idstudent, name, instrument, status, totallessons, usedlessons, expirationdate, cpf, asaas_customer_id'),
+        .select('idstudent, name, instrument, status, totallessons, usedlessons, expirationdate, cpf, asaas_customer_id, is_test'),
       supabase.from('credit').select('id, expires_at, used, used_at, created_at'),
       supabase.from('users').select('*', { count: 'exact', head: true }).eq('accountstatus', 'approved'),
       supabase.from('users').select('*', { count: 'exact', head: true }).eq('accountstatus', 'waiting_approvement'),
@@ -227,9 +227,12 @@ export class AdminDashboardService {
         .gte('date', cutoffIso),
     ]);
 
-    const payments = paymentsRes.data || [];
+    // Alunos de teste (is_test) ficam fora de todos os números: faturamento, inadimplência e contagens.
+    const allStudentRows = studentsRes.data || [];
+    const testStudentIds = new Set(allStudentRows.filter(s => (s as any).is_test).map(s => s.idstudent));
+    const payments = (paymentsRes.data || []).filter(p => !testStudentIds.has(p.idstudent_fk));
     const allRequests = requestsRes.data || [];
-    const studentRows = studentsRes.data || [];
+    const studentRows = allStudentRows.filter(s => !(s as any).is_test);
     const credits = creditsRes.data || [];
 
     // Mapas de aluno reaproveitados em várias métricas (evita queries extras).

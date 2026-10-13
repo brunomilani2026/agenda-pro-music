@@ -1995,7 +1995,7 @@ export async function fetchTeacherPayments(): Promise<any[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('payment')
-      .select('id, idstudent_fk, amount, duedate, paymentdate, status, method, notes, renegotiated_from, aluno_avisou_em, student:idstudent_fk(name)')
+      .select('id, idstudent_fk, amount, duedate, paymentdate, status, method, notes, renegotiated_from, aluno_avisou_em, student:idstudent_fk(name, is_test)')
       .eq('idusers_fk', dbUser.idusers)
       .order('duedate', { ascending: false });
 
@@ -2004,7 +2004,8 @@ export async function fetchTeacherPayments(): Promise<any[]> {
       return [];
     }
 
-    return (data || []).map(p => ({
+    // Aluno de teste (is_test) não entra nos valores arrecadados nem na inadimplência.
+    return (data || []).filter(p => !(p.student as any)?.is_test).map(p => ({
       id: p.id,
       idstudent_fk: p.idstudent_fk,
       studentName: (p.student as any)?.name || 'Aluno',
