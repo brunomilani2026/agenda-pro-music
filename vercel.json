@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/resumo",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/renovar-agenda",
+      "schedule": "30 9 * * *"
     }
   ]
 }
