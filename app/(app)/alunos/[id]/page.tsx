@@ -480,7 +480,7 @@ export default function FichaAlunoPage() {
       </div>
 
       {/* Abas */}
-      <div className="flex gap-1 border-b border-gray-800 overflow-x-auto" role="tablist">
+      <div className="shrink-0 flex gap-1 border-b border-gray-800 overflow-x-auto" role="tablist">
         {ABAS.map(t => (
           <button key={t.id} role="tab" aria-selected={aba === t.id} onClick={() => setAba(t.id)}
             className={`px-4 py-3 text-xs font-black uppercase tracking-widest whitespace-nowrap border-b-2 transition-colors ${aba === t.id ? "border-amber-500 text-amber-500" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
