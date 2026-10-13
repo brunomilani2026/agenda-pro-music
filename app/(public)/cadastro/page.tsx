@@ -148,7 +148,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Smooth Role Toggle Tabs */}
-        <div className="relative flex max-w-md mx-auto bg-gray-800/40 p-1.5 rounded-2xl mb-10 border border-gray-700/50 animate-pop-in">
+        <div className="relative hidden max-w-md mx-auto bg-gray-800/40 p-1.5 rounded-2xl mb-10 border border-gray-700/50 animate-pop-in" aria-hidden="true">
           {/* Sliding Pill */}
           <div
             className={`absolute top-1.5 bottom-1.5 w-[calc(50%-0.375rem)] rounded-xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-lg ${activeTab === 'aluno'

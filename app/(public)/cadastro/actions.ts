@@ -6,6 +6,8 @@ import { afterResponse } from '@/lib/after-response';
 import { isValidCPF, isValidEmail, isValidPhone, normalizePhoneForStorage } from '@/lib/utils';
 
 export async function submitTeacherRegistration(formData: FormData) {
+  // Cadastro público de professor fechado: só reabre com ALLOW_TEACHER_SIGNUP=1 no ambiente.
+  if (process.env.ALLOW_TEACHER_SIGNUP !== '1') return { error: 'O cadastro de professores está fechado no momento.' };
   try {
     const nome = formData.get('nome') as string;
     const email = formData.get('email') as string;
