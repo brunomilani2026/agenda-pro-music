@@ -62,3 +62,5 @@ Origem: documento do Bruno (09/10/2026). Regra dele: auditar, propor, **aguardar
 - Resumo diário por e-mail: /api/cron/resumo, vercel.json "0 10 * * *" (07h BRT, ±1h). Bruno filtra no Gmail (assunto "Resumo do dia" -> marcador "Agenda Pro", pula caixa de entrada) para o briefing ler.
 - Reposições completas: decidido NÃO fazer por ora. App financeiro: fora de escopo.
 - Pendente: limpeza dos projetos antigos Vercel/Supabase/GitHub (16–24/10/2026); incluir seção Agenda Pro no briefing (Assistente Executivo).
+- 13/10: Renovação automática da agenda: /api/cron/renovar-agenda (vercel.json "30 9 * * *" ≈ 06:30 BRT; ?simular=1 só mostra). Regras em lib/renovacao-agenda.ts (ativos/bloqueados, plano não avulso, ≥3 aulas no mesmo dia/hora nas últimas 12 semanas, 8 semanas à frente, pula conflito/bloqueio/folga, aguardando_pagamento após o vencimento, sem avisos). Série fixa de alunos "avulsa" nunca renova.
+- Aulas criadas à mão no banco em 13/10: Paula (seg 18:30), João Batista (ter 16:00), Pipo (qua 18:30), Newton (qui 17:00), 8 semanas cada.
