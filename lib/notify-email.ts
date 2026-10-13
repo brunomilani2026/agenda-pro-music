@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server';
+import { classificarEmail } from '@/lib/email-tipos';
 import { EmailService } from '@/services/email.service';
 import type { EmailResult } from '@/lib/email-failure';
 
@@ -142,6 +143,8 @@ export async function emailStudent(
     buttonLabel?: string;
     buttonPath?: string;
     buttonUrl?: string;
+    /** Tipo para o registro de e-mails (aula, pagamento, atraso, tarefa, manual). Sem ele, é deduzido pelo assunto. */
+    tipo?: string;
   },
 ): Promise<EmailResult> {
   try {
@@ -152,25 +155,47 @@ export async function emailStudent(
     const supabase = createAdminClient();
     const { data: student } = await supabase
       .from('student')
-      .select('name, email')
+      .select('name, email, idusers_fk')
       .eq('idstudent', idstudent_fk)
       .single();
 
     if (!student) return { ok: false, reason: 'lookup' };
-    if (!student.email) return { ok: false, reason: 'sem-email' };
 
-    return await EmailService.sendNotification({
+    const buttonUrl = content.buttonUrl || (content.buttonPath ? `${APP_URL}${content.buttonPath}` : undefined);
+    const registrar = (r: EmailResult) => registrarEmailAluno(supabase, {
+      idstudent_fk, idusers_fk: student.idusers_fk ?? null, to_email: student.email ?? null,
+      tipo: classificarEmail(content.title, content.tipo), title: content.title, message: content.message,
+      button_label: content.buttonLabel ?? null, button_url: buttonUrl ?? null,
+      status: r.ok ? 'enviado' : 'falhou', fail_reason: r.ok ? null : r.reason, fail_detail: r.ok ? null : (r.detail ?? null),
+    });
+
+    if (!student.email) { const r: EmailResult = { ok: false, reason: 'sem-email' }; await registrar(r); return r; }
+
+    const resultado = await EmailService.sendNotification({
       toEmail: student.email,
       toName: student.name || '',
       title: content.title,
       message: content.message,
       buttonLabel: content.buttonLabel,
-      buttonUrl: content.buttonUrl || (content.buttonPath ? `${APP_URL}${content.buttonPath}` : undefined),
+      buttonUrl,
     });
+    await registrar(resultado);
+    return resultado;
   } catch (err) {
     console.error('Falha ao enviar e-mail de notificação ao aluno:', err);
     return { ok: false, reason: 'lookup' };
   }
+}
+
+/**
+ * Grava o envio no registro de e-mails (aba "E-mails" da ficha). Nunca atrapalha o e-mail: se a tabela ainda não
+ * existir ou der erro, só ignora.
+ */
+async function registrarEmailAluno(supabase: ReturnType<typeof createAdminClient>, reg: Record<string, unknown>): Promise<void> {
+  try {
+    const { error } = await supabase.from('email_log').insert(reg);
+    if (error && !/email_log|schema cache|does not exist/i.test(error.message)) console.error('Registro de e-mails: erro ao gravar:', error.message);
+  } catch (e) { /* o registro é complementar */ }
 }
 
 /**

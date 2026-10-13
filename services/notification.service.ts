@@ -127,6 +127,7 @@ export class NotificationService {
             message,
             buttonLabel: 'Ver no app',
             buttonPath: '/aluno/notificacoes',
+            tipo: 'manual',
           }),
         ),
       );

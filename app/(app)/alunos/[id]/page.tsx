@@ -13,11 +13,12 @@ import { compartilharComAluno, definirMateriaisDaAula, fetchMateriaisAluno, mate
 import { enderecoDoMaterial } from "../../materiais/actions";
 import { formatarTamanho, type Material } from "@/lib/materiais";
 import TarefasAba from "./TarefasAba";
+import EmailsAba from "./EmailsAba";
 import { agruparPlano, calcularEvolucao, ROTULO_DIFICULDADE, ROTULO_STATUS, STATUS_ESTUDO, SUGESTOES_COMPETENCIA, type ItemAluno, type StatusEstudo, type Trilha } from "@/lib/estudos";
 import type { FichaAluno, FichaAula, FichaFatura, FichaReposicao } from "@/lib/ficha-aluno";
 import { CAMPOS_TEXTO, MAX_CAMPO, VISIBILIDADE_PROFESSOR, type NotaAluno, type RegistroAula, type VisibilidadeNota } from "@/lib/diario-aluno";
 
-type Aba = "geral" | "aulas" | "diario" | "estudos" | "materiais" | "tarefas" | "notas" | "financeiro" | "reposicoes";
+type Aba = "geral" | "aulas" | "diario" | "estudos" | "materiais" | "tarefas" | "notas" | "financeiro" | "reposicoes" | "emails";
 
 const ABAS: { id: Aba; label: string }[] = [
   { id: "geral", label: "Visão geral" },
@@ -29,6 +30,7 @@ const ABAS: { id: Aba; label: string }[] = [
   { id: "notas", label: "Anotações" },
   { id: "financeiro", label: "Financeiro" },
   { id: "reposicoes", label: "Reposições" },
+  { id: "emails", label: "E-mails" },
 ];
 
 const fmtData = (iso?: string | null) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
@@ -755,6 +757,7 @@ export default function FichaAlunoPage() {
       )}
 
       {aba === "tarefas" && <TarefasAba alunoId={aluno.id} proximaAula={resumo.proximaAula} />}
+      {aba === "emails" && <EmailsAba alunoId={aluno.id} />}
 
       {aba === "notas" && (
         <Painel titulo={`Anotações (${notas.length})`} acao={<Lock className="w-4 h-4 text-amber-500" />}>

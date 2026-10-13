@@ -1,0 +1,17 @@
+import { classificarEmail } from '../lib/email-tipos';
+let ok = 0, tot = 0; const t = (n: string, c: boolean) => { tot++; if (c) ok++; else console.log('FALHOU:', n); };
+const c = classificarEmail;
+t('aula 1h', c('Sua aula é daqui a pouco') === 'aula');
+t('lembrete dia', c('Lembrete: sua aula é amanhã') === 'aula');
+t('aula agendada', c('Aula agendada!') === 'aula');
+t('cancelamento', c('Cancelamento aprovado') === 'aula' && c('Aulas canceladas') === 'aula');
+t('remarcação', c('Remarcação liberada — escolha um novo horário') === 'aula');
+t('reposição', c('Reposição aprovada!') === 'aula');
+t('nova fatura', c('Nova fatura disponível') === 'pagamento');
+t('vence', c('Sua fatura vence em 5 dias') === 'pagamento' && c('Sua fatura vence hoje') === 'pagamento');
+t('pago', c('Pagamento confirmado!') === 'pagamento' && c('Pagamento renegociado') === 'pagamento' && c('Cobrança cancelada') === 'pagamento');
+t('atraso vence antes de pagamento', c('Pagamento em atraso') === 'atraso' && c('Fatura em atraso há 12 dias') === 'atraso');
+t('tarefa', c('Nova tarefa') === 'tarefa' && c('Tarefa concluída') === 'tarefa');
+t('explícito vale', c('Qualquer coisa', 'manual') === 'manual' && c('Sua aula', 'invalido') === 'aula');
+t('outros', c('Bem-vindo!') === 'outros');
+console.log(`${ok} de ${tot}`);

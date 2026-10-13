@@ -28,7 +28,7 @@ export async function avisarAlunoDaTarefa(
     if (error) console.error('Aviso de tarefa (aluno): erro ao gravar notificação:', error.message);
 
     await afterResponse(() => emailStudent(p.studentId, {
-      title: p.title, message: p.message, buttonLabel: 'Ver minhas tarefas', buttonPath: '/aluno/tarefas',
+      title: p.title, message: p.message, buttonLabel: 'Ver minhas tarefas', buttonPath: '/aluno/tarefas', tipo: 'tarefa',
     }));
   } catch (e: any) {
     console.error('Aviso de tarefa (aluno) falhou:', e?.message || e);
