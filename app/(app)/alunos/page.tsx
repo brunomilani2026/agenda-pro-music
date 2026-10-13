@@ -431,7 +431,6 @@ export default function AlunosPage() {
             <thead>
               <tr className="bg-gray-800/60 border-b border-gray-700">
                 <SortableTh columnKey="name" sort={sort} onSort={toggle} className="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Aluno</SortableTh>
-                <th className="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Instrumento</th>
                 <SortableTh columnKey="expirationdate" sort={sort} onSort={toggle} className="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-center">Controle de Pacotes</SortableTh>
                 <SortableTh columnKey="lessonPrice" sort={sort} onSort={toggle} className="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-center">Financeiro</SortableTh>
                 <SortableTh columnKey="status" sort={sort} onSort={toggle} className="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-center">Status</SortableTh>
@@ -441,7 +440,7 @@ export default function AlunosPage() {
             <tbody className="divide-y divide-gray-800/50">
               {students.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-8 py-24 text-center">
+                  <td colSpan={5} className="px-8 py-24 text-center">
                     <div className="flex flex-col items-center gap-4 opacity-40">
                       <Users className="w-16 h-16 text-gray-600 mb-2" />
                       <p className="text-lg font-bold text-gray-400">Nenhum aluno em sua base sonora</p>
@@ -472,11 +471,6 @@ export default function AlunosPage() {
                           <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest">{student.email}</p>
                         </div>
                       </button>
-                    </td>
-                    <td className="px-8 py-6">
-                       <span className="px-3 py-1.5 bg-indigo-500/10 text-indigo-400 rounded-lg text-xs font-black uppercase tracking-widest border border-indigo-500/20">
-                         {student.instrument}
-                       </span>
                     </td>
                     <td className="px-8 py-6 text-center">
                       {student.packagetype && student.packagetype !== 'avulsa' ? (
