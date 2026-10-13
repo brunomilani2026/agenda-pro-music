@@ -5,7 +5,7 @@ import { FileText, FolderOpen, Link2, Pencil, Play, Share2, Trash2, Upload, X } 
 import { useAppContext } from "../AppContext";
 import { createClient } from "@/lib/supabase/client";
 import {
-  apagarMaterial, concluirUpload, criarLink, definirCompartilhamento, editarMaterial,
+  apagarMaterial, concluirUpload, criarLink, definirCompartilhamento, definirParaTodos, editarMaterial,
   enderecoDoMaterial, fetchCompartilhamento, listarMateriais, prepararUpload, type MaterialLinha,
 } from "./actions";
 import { CATEGORIAS_SUGERIDAS, filtrarMateriais, formatarTamanho, MAX_BYTES, valoresDistintos } from "@/lib/materiais";
@@ -48,7 +48,7 @@ export default function MateriaisPage() {
 
   const [filtro, setFiltro] = useState({ texto: "", instrumento: "", categoria: "", tipo: "" });
   const [editando, setEditando] = useState<{ id: string; kind: string; f: Form } | null>(null);
-  const [compartilhando, setCompartilhando] = useState<{ id: string; titulo: string; escolhidos: Set<string> } | null>(null);
+  const [compartilhando, setCompartilhando] = useState<{ id: string; titulo: string; escolhidos: Set<string>; paraTodos: boolean; paraTodosInicial: boolean } | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   const carregar = useCallback(async () => {
@@ -104,7 +104,7 @@ export default function MateriaisPage() {
   const abrirCompartilhar = async (m: MaterialLinha) => {
     const r = await fetchCompartilhamento(m.id);
     if (!r.ok) { setErro(r.error); return; }
-    setCompartilhando({ id: m.id, titulo: m.title, escolhidos: new Set(r.alunos) });
+    setCompartilhando({ id: m.id, titulo: m.title, escolhidos: new Set(r.alunos), paraTodos: !!m.for_all_students, paraTodosInicial: !!m.for_all_students });
   };
 
   return (
@@ -214,7 +214,11 @@ export default function MateriaisPage() {
               <div><h2 className="text-lg font-black text-white">Quem pode ver</h2><p className="text-xs text-gray-500 break-words">{compartilhando.titulo}. Sem ninguém marcado, o material fica privado.</p></div>
               <button onClick={() => setCompartilhando(null)} className={btnIcone} aria-label="Fechar"><X className="w-5 h-5" /></button>
             </div>
-            {students.length === 0 ? <p className="text-sm text-gray-500">Você ainda não tem alunos.</p> : (
+            <label className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3 cursor-pointer">
+              <input type="checkbox" className="accent-amber-500 mt-0.5" checked={compartilhando.paraTodos} onChange={e => setCompartilhando(c => c && { ...c, paraTodos: e.target.checked })} />
+              <span className="text-sm text-white">Disponível para todos os alunos<span className="block text-xs text-gray-400 font-normal">Compartilha agora com todos os alunos ativos e também com todo aluno novo que entrar.</span></span>
+            </label>
+            {compartilhando.paraTodos ? null : students.length === 0 ? <p className="text-sm text-gray-500">Você ainda não tem alunos.</p> : (
               <ul className="divide-y divide-gray-800">
                 {students.map(a => (
                   <li key={a.id}><label className="flex items-center gap-3 py-2.5 cursor-pointer">
@@ -227,7 +231,14 @@ export default function MateriaisPage() {
             )}
             <div className="flex justify-end gap-3">
               <button onClick={() => setCompartilhando(null)} className="px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-500 hover:text-white">Cancelar</button>
-              <button disabled={salvando} onClick={async () => { setSalvando(true); const r = await definirCompartilhamento(compartilhando.id, [...compartilhando.escolhidos]); setSalvando(false); if (!r.ok) { setErro(r.error); return; } setCompartilhando(null); setAviso(r.total === 0 ? "Material privado (ninguém tem acesso)." : `Material compartilhado com ${r.total} ${r.total === 1 ? "aluno" : "alunos"}.`); await carregar(); }}
+              <button disabled={salvando} onClick={async () => { setSalvando(true);
+                if (compartilhando.paraTodos) {
+                  const t = await definirParaTodos(compartilhando.id, true); setSalvando(false);
+                  if (!t.ok) { setErro(t.error); return; }
+                  setCompartilhando(null); setAviso(`Material disponível para todos os alunos${t.novos ? ` (${t.novos} ${t.novos === 1 ? "novo recebeu" : "novos receberam"} agora)` : ""}. Alunos novos também vão receber.`); await carregar(); return;
+                }
+                if (compartilhando.paraTodosInicial) { const t = await definirParaTodos(compartilhando.id, false); if (!t.ok) { setSalvando(false); setErro(t.error); return; } }
+                const r = await definirCompartilhamento(compartilhando.id, [...compartilhando.escolhidos]); setSalvando(false); if (!r.ok) { setErro(r.error); return; } setCompartilhando(null); setAviso(r.total === 0 ? "Material privado (ninguém tem acesso)." : `Material compartilhado com ${r.total} ${r.total === 1 ? "aluno" : "alunos"}.`); await carregar(); }}
                 className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-gray-900 text-xs font-black uppercase tracking-widest disabled:opacity-40">{salvando ? "Salvando…" : "Salvar"}</button>
             </div>
           </div>

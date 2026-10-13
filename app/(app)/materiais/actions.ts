@@ -11,7 +11,7 @@ import {
 const ERRO = 'Não foi possível concluir. Tente de novo.';
 const SEM_TABELA = 'A biblioteca de materiais ainda não foi ativada no banco.';
 const BUCKET = 'materials';
-const COLUNAS = 'id, kind, title, description, category, instrument, level, content_tag, url, storage_path, file_name, mime_type, size_bytes, created_at';
+const COLUNAS = 'id, kind, title, description, category, instrument, level, content_tag, url, storage_path, file_name, mime_type, size_bytes, created_at, for_all_students';
 
 export type MaterialLinha = Material & { alunos: number; aulas: number };
 
@@ -179,6 +179,40 @@ export async function definirCompartilhamento(id: string, studentIds: string[]):
       if (error) { console.error('Materiais: erro ao retirar acesso:', error.message); return { ok: false, error: 'Não foi possível retirar o acesso.' }; }
     }
     return { ok: true, total: alvo.size };
+  } catch (e: any) { console.error('Materiais: erro inesperado:', e?.message || e); return { ok: false, error: ERRO }; }
+}
+
+/**
+ * "Para todos os alunos": liga ou desliga o marcador. Ligado, o material é compartilhado agora com todos os alunos ativos e
+ * bloqueados e, daqui para frente, com todo aluno novo (regra no banco). Desligar NÃO retira quem já recebeu.
+ */
+export async function definirParaTodos(id: string, valor: boolean): Promise<{ ok: true; novos: number } | Falha> {
+  try {
+    if (!UUID.test(id) || typeof valor !== 'boolean') return { ok: false, error: 'Material não encontrado.' };
+    const ctx = await contextoProfessor();
+    if (!ctx) return { ok: false, error: 'Sessão inválida.' };
+    const { supabase, dbUser } = ctx;
+    const { data: mat } = await supabase.from('material').select('id').eq('id', id).eq('idusers_fk', dbUser.idusers).maybeSingle();
+    if (!mat) return { ok: false, error: 'Material não encontrado.' };
+
+    const { error: errUp } = await supabase.from('material').update({ for_all_students: valor }).eq('id', id).eq('idusers_fk', dbUser.idusers);
+    if (errUp) {
+      console.error('Materiais: erro ao marcar para todos:', errUp.message);
+      return { ok: false, error: /for_all_students/.test(errUp.message) ? 'Esta opção ainda não foi ativada no banco.' : 'Não foi possível salvar.' };
+    }
+    if (!valor) return { ok: true, novos: 0 };
+
+    const [{ data: alunos }, { data: atuais }] = await Promise.all([
+      supabase.from('student').select('idstudent').eq('idusers_fk', dbUser.idusers).in('status', ['ativo', 'bloqueado']),
+      supabase.from('material_share').select('idstudent_fk').eq('material_fk', id).eq('idusers_fk', dbUser.idusers),
+    ]);
+    const tem = new Set((atuais ?? []).map(r => r.idstudent_fk as string));
+    const faltam = (alunos ?? []).map(a => a.idstudent as string).filter(a => !tem.has(a));
+    if (faltam.length) {
+      const { error } = await supabase.from('material_share').insert(faltam.map(a => ({ material_fk: id, idstudent_fk: a, idusers_fk: dbUser.idusers })));
+      if (error) { console.error('Materiais: erro ao compartilhar com todos:', error.message); return { ok: false, error: 'Não foi possível compartilhar com todos.' }; }
+    }
+    return { ok: true, novos: faltam.length };
   } catch (e: any) { console.error('Materiais: erro inesperado:', e?.message || e); return { ok: false, error: ERRO }; }
 }
 

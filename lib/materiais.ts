@@ -34,6 +34,8 @@ export type Material = {
   mime_type: string | null;
   size_bytes: number | null;
   created_at: string;
+  /** Marcado: todo aluno novo do professor recebe este material automaticamente. */
+  for_all_students?: boolean;
 };
 
 type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
