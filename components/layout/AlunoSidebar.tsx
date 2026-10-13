@@ -7,17 +7,22 @@ import { LogOut, LayoutDashboard, Calendar, DollarSign, User, Bell, Package, Lis
 import { clearSessionEmail } from "@/lib/session";
 import { formatName } from "@/lib/utils";
 
-const navItems = [
-  { label: "Meu Painel", href: "/aluno/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: "Minhas Aulas", href: "/aluno/aulas", icon: <Calendar className="w-5 h-5" /> },
-  { label: "Meu Diário", href: "/aluno/diario", icon: <BookOpen className="w-5 h-5" /> },
-  { label: "Meus Estudos", href: "/aluno/estudos", icon: <ListChecks className="w-5 h-5" /> },
-  { label: "Tarefas", href: "/aluno/tarefas", icon: <ClipboardList className="w-5 h-5" /> },
-  { label: "Materiais", href: "/aluno/materiais", icon: <FolderOpen className="w-5 h-5" /> },
-  { label: "Planos e Créditos", href: "/aluno/compra-creditos", icon: <Package className="w-5 h-5" /> },
-  { label: "Financeiro", href: "/aluno/financeiro", icon: <DollarSign className="w-5 h-5" /> },
-  { label: "Notificações", href: "/aluno/notificacoes", icon: <Bell className="w-5 h-5" /> },
-  { label: "Meu Perfil", href: "/aluno/perfil", icon: <User className="w-5 h-5" /> },
+// Grupos separados por um traço: painel | aulas | notificações | estudo | financeiro | perfil.
+const navGroups = [
+  [{ label: "Meu Painel", href: "/aluno/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> }],
+  [{ label: "Minhas Aulas", href: "/aluno/aulas", icon: <Calendar className="w-5 h-5" /> }],
+  [{ label: "Notificações", href: "/aluno/notificacoes", icon: <Bell className="w-5 h-5" /> }],
+  [
+    { label: "Meu Diário", href: "/aluno/diario", icon: <BookOpen className="w-5 h-5" /> },
+    { label: "Meus Estudos", href: "/aluno/estudos", icon: <ListChecks className="w-5 h-5" /> },
+    { label: "Tarefas", href: "/aluno/tarefas", icon: <ClipboardList className="w-5 h-5" /> },
+    { label: "Materiais", href: "/aluno/materiais", icon: <FolderOpen className="w-5 h-5" /> },
+  ],
+  [
+    { label: "Planos e Créditos", href: "/aluno/compra-creditos", icon: <Package className="w-5 h-5" /> },
+    { label: "Financeiro", href: "/aluno/financeiro", icon: <DollarSign className="w-5 h-5" /> },
+  ],
+  [{ label: "Meu Perfil", href: "/aluno/perfil", icon: <User className="w-5 h-5" /> }],
 ];
 
 interface AlunoSidebarProps {
@@ -52,7 +57,9 @@ export default function AlunoSidebar({ open, onClose, studentName, avatarUrl, pa
   // autosserviço de pacotes de créditos — o desconto individual é calibrado
   // para a mensalidade e distorceria o preço dos pacotes.
   const isRecurringPlan = ['mensal', 'trimestral', 'semestral'].includes((packageType || '').toLowerCase());
-  const visibleNavItems = navItems.filter(i => !(i.href === '/aluno/compra-creditos' && isRecurringPlan));
+  const visibleGroups = navGroups
+    .map(g => g.filter(i => !(i.href === '/aluno/compra-creditos' && isRecurringPlan)))
+    .filter(g => g.length > 0);
 
   // Iniciais resilientes — usam primeiro + último nome quando há mais de uma parte,
   // garantindo coerência com o nome exibido (formatName).
@@ -94,7 +101,14 @@ export default function AlunoSidebar({ open, onClose, studentName, avatarUrl, pa
           )}
 
           <div className="space-y-1">
-            {visibleNavItems.map((item) => {
+            {visibleGroups.map((grupo, gi) => (
+              <div key={gi} className="space-y-1">
+                {gi > 0 && (
+                  isCollapsed
+                    ? <div className="flex justify-center py-2"><div className="w-6 h-[2px] bg-gray-700 rounded-full" /></div>
+                    : <div className="mx-2 my-3 h-px bg-gradient-to-r from-gray-700 to-transparent" />
+                )}
+                {grupo.map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
               return (
                 <Link
@@ -129,7 +143,9 @@ export default function AlunoSidebar({ open, onClose, studentName, avatarUrl, pa
                   )}
                 </Link>
               );
-            })}
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </nav>
