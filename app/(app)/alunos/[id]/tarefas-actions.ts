@@ -4,6 +4,7 @@ import { alunoDoProfessor, contextoProfessor, UUID, type Falha } from '@/lib/pro
 import { tabelaAusente } from '@/lib/diario-aluno';
 import { getLocalISODate, nowInSaoPaulo } from '@/lib/utils';
 import { limparRetorno, limparTarefa, statusDaTarefa, type Entrega, type StatusTarefa, type Tarefa } from '@/lib/tarefas';
+import { avisarAlunoDaTarefa, prazoPorExtenso } from '@/lib/aviso-tarefa';
 
 const ERRO = 'Não foi possível concluir. Tente de novo.';
 const SEM_TABELA = 'As tarefas ainda não foram ativadas no banco.';
@@ -98,6 +99,10 @@ export async function criarTarefa(idstudents: string[], bruto: Record<string, un
     for (const t of criadas ?? []) {
       const mats = await compartilharApoio(supabase, dbUser.idusers, t.idstudent_fk as string, materialIds);
       if (mats.length) await supabase.from('task_material').insert(mats.map(m => ({ task_fk: t.id, material_fk: m, idusers_fk: dbUser.idusers })));
+      await avisarAlunoDaTarefa(supabase, {
+        teacherId: dbUser.idusers, studentId: t.idstudent_fk as string, title: 'Nova tarefa',
+        message: `Seu professor passou a tarefa "${v.valor.title}".${prazoPorExtenso(v.valor.due_date)}`,
+      });
     }
     return { ok: true, criadas: criadas?.length ?? 0 };
   } catch (err: any) { console.error('Tarefas: erro inesperado:', err?.message || err); return { ok: false, error: ERRO }; }
@@ -155,7 +160,14 @@ export async function darRetorno(idstudent: string, submissionId: string, feedba
       .update({ feedback: v.valor, feedback_at: new Date().toISOString() })
       .eq('id', submissionId).eq('idstudent_fk', idstudent).eq('idusers_fk', ctx.dbUser.idusers).select('id');
     if (error) { console.error('Tarefas: erro ao dar retorno:', error.message); return { ok: false, error: ERRO }; }
-    return data?.length ? { ok: true } : { ok: false, error: 'Entrega não encontrada.' };
+    if (!data?.length) return { ok: false, error: 'Entrega não encontrada.' };
+    const { data: sub } = await ctx.supabase.from('task_submission').select('task_fk').eq('id', submissionId).maybeSingle();
+    const { data: tk } = sub ? await ctx.supabase.from('task').select('title').eq('id', sub.task_fk).maybeSingle() : { data: null };
+    await avisarAlunoDaTarefa(ctx.supabase, {
+      teacherId: ctx.dbUser.idusers, studentId: idstudent, title: 'Retorno na sua tarefa',
+      message: `Seu professor respondeu a sua entrega${tk?.title ? ` da tarefa "${tk.title}"` : ''}. Abra Tarefas para ler.`,
+    });
+    return { ok: true };
   } catch (err: any) { console.error('Tarefas: erro inesperado:', err?.message || err); return { ok: false, error: ERRO }; }
 }
 
@@ -166,9 +178,16 @@ export async function concluirTarefa(idstudent: string, taskId: string, concluid
     if (!ctx) return { ok: false, error: 'Aluno não encontrado.' };
     const { data, error } = await ctx.supabase.from('task')
       .update({ status: concluida ? 'concluida' : 'aberta', completed_at: concluida ? new Date().toISOString() : null })
-      .eq('id', taskId).eq('idstudent_fk', idstudent).eq('idusers_fk', ctx.dbUser.idusers).select('id');
+      .eq('id', taskId).eq('idstudent_fk', idstudent).eq('idusers_fk', ctx.dbUser.idusers).select('id, title');
     if (error) return { ok: false, error: ERRO };
-    return data?.length ? { ok: true } : { ok: false, error: 'Tarefa não encontrada.' };
+    if (!data?.length) return { ok: false, error: 'Tarefa não encontrada.' };
+    if (concluida) {
+      await avisarAlunoDaTarefa(ctx.supabase, {
+        teacherId: ctx.dbUser.idusers, studentId: idstudent, title: 'Tarefa concluída',
+        message: `Seu professor marcou a tarefa "${data[0].title}" como concluída. Parabéns!`,
+      });
+    }
+    return { ok: true };
   } catch (err: any) { console.error('Tarefas: erro inesperado:', err?.message || err); return { ok: false, error: ERRO }; }
 }
 

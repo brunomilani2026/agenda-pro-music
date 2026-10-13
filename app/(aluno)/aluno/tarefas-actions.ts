@@ -8,6 +8,7 @@ import { getSessionStudent } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { tabelaAusente } from '@/lib/diario-aluno';
 import { getLocalISODate, nowInSaoPaulo } from '@/lib/utils';
+import { avisarProfessorDaTarefa } from '@/lib/aviso-tarefa';
 import {
   caminhoEntrega, limparEntregaLink, statusDaTarefa, validarArquivoEntrega,
   type Entrega, type StatusTarefa, type Tarefa,
@@ -16,6 +17,18 @@ import {
 const ERRO = 'Não foi possível concluir. Tente de novo.';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 type Falha = { ok: false; error: string };
+
+/** Avisa o professor (sino + e-mail) que o aluno entregou. Nunca quebra a entrega. */
+async function avisarEntrega(ctx: NonNullable<Awaited<ReturnType<typeof alunoLogado>>>, taskId: string) {
+  try {
+    const { student, supabase } = ctx;
+    const { data: t } = await supabase.from('task').select('title').eq('id', taskId).eq('idstudent_fk', student.idstudent).maybeSingle();
+    await avisarProfessorDaTarefa(supabase, {
+      teacherId: student.idusers_fk as string, studentId: student.idstudent, title: 'Nova entrega de tarefa',
+      message: `${student.name} entregou${t?.title ? ` a tarefa "${t.title}"` : ' uma tarefa'}. Abra Tarefas para ver e dar o retorno.`,
+    });
+  } catch (e: any) { console.error('Portal tarefas: aviso de entrega falhou:', e?.message || e); }
+}
 
 export type EntregaDoAluno = Entrega;
 export type TarefaDoAluno = Tarefa & { entregas: EntregaDoAluno[]; materiais: { id: string; title: string }[]; estado: StatusTarefa };
@@ -113,6 +126,7 @@ export async function concluirEntrega(taskId: string, path: unknown, note: unkno
       console.error('Portal tarefas: erro ao registrar entrega:', error.message);
       return { ok: false, error: 'Não foi possível registrar a entrega. A tarefa pode já ter sido concluída.' };
     }
+    await avisarEntrega(ctx, taskId);
     return { ok: true };
   } catch (err: any) { console.error('Portal tarefas: erro inesperado:', err?.message || err); return { ok: false, error: ERRO }; }
 }
@@ -128,6 +142,7 @@ export async function entregarLink(taskId: string, url: unknown, note: unknown):
       task_fk: taskId, idstudent_fk: student.idstudent, idusers_fk: student.idusers_fk, kind: 'link', url: v.valor.url, note: v.valor.note,
     });
     if (error) { console.error('Portal tarefas: erro ao entregar link:', error.message); return { ok: false, error: 'Não foi possível registrar a entrega. A tarefa pode já ter sido concluída.' }; }
+    await avisarEntrega(ctx, taskId);
     return { ok: true };
   } catch (err: any) { console.error('Portal tarefas: erro inesperado:', err?.message || err); return { ok: false, error: ERRO }; }
 }
