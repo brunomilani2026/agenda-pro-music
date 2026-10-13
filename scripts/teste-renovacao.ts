@@ -58,3 +58,35 @@ const r5 = planejarRenovacao({ alunos: [alunos[0]], aulas: [...aulas, aula('y', 
 t('data cancelada vira a "última" e a série continua depois dela', r5.criar.every(x => x.date > '2026-10-19'));
 
 console.log(`${ok} de ${tot}`);
+
+// ---- aluno avulso ----
+import { planejarVencimentoAvulso } from '../lib/renovacao-agenda';
+{
+  let ok2 = 0, tot2 = 0;
+  const t2 = (n: string, c: boolean) => { tot2++; if (c) ok2++; else console.log('FALHOU (avulso):', n); };
+  const al = [
+    { idstudent: 'x', name: 'Avulso Um', status: 'ativo', packagetype: 'avulsa', expirationdate: '2026-08-13', idusers_fk: 'P' },
+    { idstudent: 'y', name: 'Mensal', status: 'ativo', packagetype: 'mensal', expirationdate: '2026-08-13', idusers_fk: 'P' },
+    { idstudent: 'z', name: 'Avulso Teste', status: 'ativo', packagetype: 'avulsa', expirationdate: null, idusers_fk: 'P', is_test: true },
+    { idstudent: 'w', name: 'Avulso Inativo', status: 'inativo', packagetype: 'avulsa', expirationdate: null, idusers_fk: 'P' },
+    { idstudent: 'v', name: 'Avulso Já Certo', status: 'ativo', packagetype: 'avulsa', expirationdate: '2026-10-21', idusers_fk: 'P' },
+  ];
+  const au = [
+    aula('a1', 'x', 'Avulso Um', '2026-10-21', '19:30', '20:20', 'aguardando_pagamento'),
+    aula('a2', 'x', 'Avulso Um', '2026-10-28', '19:30', '20:20', 'aguardando_pagamento'),
+    aula('a3', 'x', 'Avulso Um', '2026-09-23', '19:30', '20:20', 'realizada'),
+    aula('m1', 'y', 'Mensal', '2026-10-21', '10:00', '10:50', 'aguardando_pagamento'),
+    aula('t1', 'z', 'Avulso Teste', '2026-10-22', '10:00', '10:50', 'aguardando_pagamento'),
+    aula('i1', 'w', 'Avulso Inativo', '2026-10-22', '11:00', '11:50', 'aguardando_pagamento'),
+    aula('c1', 'v', 'Avulso Já Certo', '2026-10-21', '12:00', '12:50', 'agendada'),
+  ];
+  const aj = planejarVencimentoAvulso({ alunos: al, aulas: au as any, hojeIso: '2026-10-13' });
+  t2('só o avulso que precisa de ajuste', aj.length === 1 && aj[0].idstudent === 'x');
+  t2('vencimento = próxima aula', aj[0]?.novoVencimento === '2026-10-21');
+  t2('libera só a aula da próxima data', JSON.stringify(aj[0]?.liberar) === JSON.stringify(['a1']));
+  t2('mensal, teste e inativo ficam de fora', !aj.some(x => ['y', 'z', 'w'].includes(x.idstudent)));
+  t2('já correto não muda', !aj.some(x => x.idstudent === 'v'));
+  const sem = planejarVencimentoAvulso({ alunos: [al[0]], aulas: [aula('p', 'x', 'Avulso Um', '2026-09-23', '19:30', '20:20', 'realizada')] as any, hojeIso: '2026-10-13' });
+  t2('sem aula futura não mexe', sem.length === 0);
+  console.log(`avulso: ${ok2} de ${tot2}`);
+}

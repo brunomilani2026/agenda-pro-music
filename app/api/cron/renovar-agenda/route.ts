@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { getLocalISODate } from '@/lib/utils';
-import { JANELA_HISTORICO_DIAS, planejarRenovacao } from '@/lib/renovacao-agenda';
+import { JANELA_HISTORICO_DIAS, planejarRenovacao, planejarVencimentoAvulso } from '@/lib/renovacao-agenda';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,8 +47,18 @@ export async function GET(request: NextRequest) {
         ]);
 
         const plano = planejarRenovacao({ alunos: alunos ?? [], aulas, bloqueios: bloqueios ?? [], folgas: folgas ?? [], hojeIso: hoje });
+        const avulsos = planejarVencimentoAvulso({ alunos: alunos ?? [], aulas, hojeIso: hoje });
         let gravadas = 0;
         if (!simular) {
+          // Aluno avulso: vencimento = próxima aula marcada; essa aula deixa de ficar "aguardando pagamento".
+          for (const a of avulsos) {
+            const { error: e1 } = await db.from('student').update({ expirationdate: a.novoVencimento }).eq('idstudent', a.idstudent);
+            if (e1) throw new Error(e1.message);
+            if (a.liberar.length) {
+              const { error: e2 } = await db.from('lesson').update({ lessonstatus: 'agendada' }).in('idlesson', a.liberar).eq('lessonstatus', 'aguardando_pagamento');
+              if (e2) throw new Error(e2.message);
+            }
+          }
           for (let i = 0; i < plano.criar.length; i += 200) {
             const lote = plano.criar.slice(i, i + 200);
             const { data, error: e } = await db.from('lesson').insert(lote).select('idlesson');
@@ -56,7 +66,7 @@ export async function GET(request: NextRequest) {
             gravadas += data?.length ?? 0;
           }
         }
-        resultado.push({ professor: dono, simulacao: simular, aCriar: plano.criar.length, gravadas, resumo: plano.resumo, puladas: plano.puladas });
+        resultado.push({ professor: dono, simulacao: simular, aCriar: plano.criar.length, gravadas, resumo: plano.resumo, puladas: plano.puladas, avulsos });
       } catch (e: any) {
         console.error('Renovação da agenda: falha para um professor:', e?.message || e);
         resultado.push({ professor: dono, erro: true });

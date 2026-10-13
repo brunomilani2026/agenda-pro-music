@@ -119,3 +119,28 @@ export function planejarRenovacao(p: {
   }
   return { criar, resumo, puladas };
 }
+
+// ---------------------------------------------------------------------------------------------
+// Aluno AVULSO: o "vencimento do plano" acompanha a PRÓXIMA aula marcada, e a aula não fica em
+// "aguardando pagamento" (a aula avulsa é paga no dia, não por plano). Só mexe em alunos ativos.
+// ---------------------------------------------------------------------------------------------
+export type AjusteAvulso = { idstudent: string; aluno: string; novoVencimento: string; liberar: string[] };
+
+export function planejarVencimentoAvulso(p: { alunos: Linha[]; aulas: Linha[]; hojeIso: string }): AjusteAvulso[] {
+  const saida: AjusteAvulso[] = [];
+  for (const aluno of p.alunos) {
+    if ((aluno.status ?? 'ativo') !== 'ativo' || aluno.is_test) continue;
+    if ((aluno.packagetype ?? 'avulsa').toLowerCase() !== 'avulsa') continue;
+
+    const futuras = aulasDoAluno(aluno, p.aulas)
+      .map(l => ({ ui: mapDbLessonToUI(l), id: l.idlesson as string }))
+      .filter(x => x.ui.date >= p.hojeIso && (x.ui.status === 'agendada' || x.ui.status === 'aguardando_pagamento'));
+    if (futuras.length === 0) continue;
+
+    const proxima = futuras.reduce((m, x) => (x.ui.date < m ? x.ui.date : m), futuras[0].ui.date);
+    const liberar = futuras.filter(x => x.ui.status === 'aguardando_pagamento' && x.ui.date <= proxima).map(x => x.id);
+    if (aluno.expirationdate === proxima && liberar.length === 0) continue;
+    saida.push({ idstudent: aluno.idstudent, aluno: aluno.name?.trim() ?? '', novoVencimento: proxima, liberar });
+  }
+  return saida;
+}

@@ -655,7 +655,9 @@ export async function createAgendaLesson(
     // não perde o slot para outro aluno), mas só confirma quando o pagamento
     // renovar o período. Só se aplica quando o professor pediu 'agendada' —
     // se ele já escolheu 'aguardando_pagamento' manualmente, mantém.
-    const expirationDate = linkedStudent?.expirationdate ?? null;
+    // Aluno avulso paga a aula no dia: nunca fica "aguardando pagamento" por causa do vencimento do plano.
+    const isAvulsoStudent = (linkedStudent?.packagetype || 'avulsa').toLowerCase() === 'avulsa';
+    const expirationDate = isAvulsoStudent ? null : (linkedStudent?.expirationdate ?? null);
     const rows = dates.map(date => ({
       studentname: uiLesson.studentName,
       student_fk: linkedStudent?.idstudent ?? null,
