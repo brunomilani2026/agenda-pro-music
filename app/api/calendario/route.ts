@@ -32,7 +32,8 @@ export async function GET(req: Request) {
     const [{ data: aulas, error }, { data: inativos }] = await Promise.all([
       db.from('lesson').select('idlesson, date, datelesson, starttime, endtime, instrument, lessonstatus, student_fk, studentname')
         .eq('idusers_fk', professor).gte('datelesson', de).lte('datelesson', ate).limit(5000),
-      db.from('student').select('idstudent').eq('idusers_fk', professor).eq('status', 'inativo'),
+      // inativos e alunos de teste (is_test) não entram no calendário
+      db.from('student').select('idstudent').eq('idusers_fk', professor).or('status.eq.inativo,is_test.eq.true'),
     ]);
     if (error) throw new Error(error.message);
     const fora = new Set((inativos ?? []).map((s: { idstudent: string }) => s.idstudent));
