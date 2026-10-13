@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Plus } from "lucide-react";
 import { fetchTarefasParaAcao, type TarefaParaAcao } from "../alunos/[id]/tarefas-actions";
+import NovaTarefaLote from "./NovaTarefaLote";
 import { ROTULO_STATUS_TAREFA } from "@/lib/tarefas";
 
 const fmtData = (iso?: string | null) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
@@ -13,12 +14,16 @@ export default function TarefasVisaoGeralPage() {
   const [disponivel, setDisponivel] = useState(true);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [criando, setCriando] = useState(false);
 
-  useEffect(() => {
+  const carregar = useCallback(() => {
     fetchTarefasParaAcao().then(r => {
       if (r.ok) { setDisponivel(r.disponivel); setTarefas(r.tarefas); } else setErro(r.error);
     }).catch(() => setErro("Não foi possível carregar as tarefas.")).finally(() => setCarregando(false));
   }, []);
+
+  useEffect(() => { carregar(); }, [carregar]);
 
   const entregues = useMemo(() => tarefas.filter(t => t.estado === "entregue"), [tarefas]);
   const atrasadas = useMemo(() => tarefas.filter(t => t.estado === "atrasada").sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? "")), [tarefas]);
@@ -41,10 +46,19 @@ export default function TarefasVisaoGeralPage() {
 
   return (
     <div className="flex flex-col w-full h-full bg-gray-900 p-4 md:p-8 rounded-tl-[2rem] animate-fade-in gap-6 overflow-y-auto">
-      <div>
-        <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter italic uppercase">Minhas <span className="text-amber-500">Tarefas</span></h1>
-        <p className="text-gray-500 text-sm mt-1 font-medium">O que pede a sua atenção agora. Para criar uma tarefa, abra a ficha do aluno e vá na aba Tarefas.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter italic uppercase">Minhas <span className="text-amber-500">Tarefas</span></h1>
+          <p className="text-gray-500 text-sm mt-1 font-medium">O que pede a sua atenção agora. Para uma tarefa só de um aluno, use a aba Tarefas da ficha dele.</p>
+        </div>
+        {!criando && (
+          <button onClick={() => { setCriando(true); setAviso(null); }} className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-gray-900 font-black py-4 px-8 rounded-2xl text-xs uppercase tracking-widest">
+            <Plus className="w-4 h-4" />Tarefa para vários alunos
+          </button>
+        )}
       </div>
+      {criando && <NovaTarefaLote onFechar={() => setCriando(false)} onCriada={msg => { setCriando(false); setAviso(msg); setErro(null); carregar(); }} />}
+      {aviso && <p role="status" className="text-sm text-green-400 font-medium">{aviso}</p>}
       {erro && <p role="alert" className="text-sm text-red-400 font-medium">{erro}</p>}
       {carregando ? (
         <div className="space-y-3 animate-pulse" aria-busy="true"><div className="h-32 rounded-3xl bg-gray-800/60" /><div className="h-32 rounded-3xl bg-gray-800/60" /></div>

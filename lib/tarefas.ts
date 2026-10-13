@@ -108,3 +108,41 @@ export function caminhoEntrega(idProfessor: string, idAluno: string, uuid: strin
 
 /** Ordena para o professor/aluno agirem primeiro no que importa. */
 export const PRIORIDADE_STATUS: Record<StatusTarefa, number> = { entregue: 0, atrasada: 1, pendente: 2, com_retorno: 3, concluida: 4 };
+
+// ---------------------------------------------------------------------------
+// Próxima aula do aluno (prazo padrão das tarefas)
+// ---------------------------------------------------------------------------
+
+const minutos = (t: string) => { const [h, m] = (t || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
+
+const normNome = (s?: string | null) => (s ?? '').trim().toLowerCase();
+
+/**
+ * Próxima aula AGENDADA do aluno que ainda não começou. Liga a aula ao aluno por `student_fk` ou,
+ * nas aulas antigas (sem vínculo), pelo nome. Mesma régua da ficha: aula que já começou não conta.
+ */
+export function proximaAulaDoAluno(
+  aluno: { idstudent: string; name: string },
+  aulas: { student_fk?: string | null; studentname?: string | null; date: string; starttime?: string | null; status: string }[],
+  hojeIso: string,
+  agoraMin: number
+): { date: string; startTime: string } | null {
+  let melhor: { date: string; startTime: string } | null = null;
+  for (const a of aulas) {
+    if (a.status !== 'agendada' && a.status !== 'aguardando_pagamento') continue;
+    const dele = a.student_fk ? a.student_fk === aluno.idstudent : normNome(a.studentname) === normNome(aluno.name);
+    if (!dele || !a.date) continue;
+    const ini = a.starttime ?? '';
+    const jaComecou = a.date < hojeIso || (a.date === hojeIso && minutos(ini) <= agoraMin);
+    if (jaComecou) continue;
+    if (!melhor || (a.date + ini) < (melhor.date + melhor.startTime)) melhor = { date: a.date, startTime: ini };
+  }
+  return melhor;
+}
+
+/** Prazo final de uma tarefa a partir do modo escolhido. Devolve '' para "sem prazo". */
+export function prazoPorModo(modo: unknown, dataEscolhida: unknown, proxima: { date: string } | null): string {
+  if (modo === 'proxima') return proxima?.date ?? '';
+  if (modo === 'data') return typeof dataEscolhida === 'string' ? dataEscolhida : '';
+  return '';
+}
