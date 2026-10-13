@@ -1,0 +1,10 @@
+import { separarLinks } from '../lib/estudos';
+let ok = 0, tot = 0; const t = (n: string, c: boolean) => { tot++; if (c) ok++; else console.log('FALHOU:', n); };
+const a = separarLinks('https://drive.google.com/file/d/1FwpuDsCSh1Qp4Tvho/view?usp=drive_link');
+t('só link', a.texto === '' && a.links.length === 1);
+const b = separarLinks('Assista antes da aula: https://youtu.be/abc, e depois https://drive.google.com/x.');
+t('texto + 2 links, sem pontuação colada', b.texto === 'Assista antes da aula: e depois' && b.links[0] === 'https://youtu.be/abc' && b.links[1] === 'https://drive.google.com/x');
+t('javascript: não vira link', separarLinks('javascript:alert(1)').links.length === 0);
+t('vazio', separarLinks(null).texto === '' && separarLinks('').links.length === 0);
+t('duplicado conta uma vez', separarLinks('https://a.com https://a.com').links.length === 1);
+console.log(`${ok} de ${tot}`);

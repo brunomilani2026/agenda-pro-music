@@ -163,3 +163,21 @@ export function calcularEvolucao(itens: { status: string; competency: string | n
       .sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome)),
   };
 }
+
+/**
+ * Separa o texto de uma descrição dos endereços (links) que ela contém. Só aceita http/https.
+ * Usado na tela do aluno para transformar o link do conteúdo num botão "Abrir conteúdo".
+ */
+export function separarLinks(descricao: string | null | undefined): { texto: string; links: string[] } {
+  const bruto = (descricao ?? '').toString();
+  const links: string[] = [];
+  const texto = bruto.replace(/https?:\/\/[^\s<>"']+/gi, (m) => {
+    const limpo = m.replace(/[.,;:!?)\]]+$/, '');
+    try {
+      const u = new URL(limpo);
+      if ((u.protocol === 'http:' || u.protocol === 'https:') && !links.includes(u.toString())) links.push(u.toString());
+    } catch { /* endereço inválido: some do texto e não vira botão */ }
+    return '';
+  }).replace(/\s+/g, ' ').trim();
+  return { texto, links };
+}

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ListChecks } from "lucide-react";
+import { ExternalLink, ListChecks } from "lucide-react";
 import { fetchMeusEstudos } from "../portal-actions";
-import { agruparPlano, calcularEvolucao, ROTULO_DIFICULDADE, ROTULO_STATUS, type ItemAluno } from "@/lib/estudos";
+import { agruparPlano, calcularEvolucao, ROTULO_DIFICULDADE, ROTULO_STATUS, separarLinks, type ItemAluno } from "@/lib/estudos";
 
 const COR_STATUS: Record<string, string> = {
   nao_iniciado: "bg-gray-700/40 text-gray-300 border-gray-600/40",
@@ -74,6 +74,18 @@ export default function MeusEstudosPage() {
                           <div className="min-w-0 flex-1">
                             <p className={`text-sm font-bold break-words ${it.status === "concluido" ? "text-gray-500 line-through" : "text-white"}`}>{it.title}</p>
                             <p className="text-xs text-gray-500 break-words">{ROTULO_DIFICULDADE[it.difficulty]}{it.competency ? ` · ${it.competency}` : ""}{it.objective ? ` · ${it.objective}` : ""}</p>
+                            {(() => { const d = separarLinks(it.description); return (<>
+                              {d.texto && <p className="mt-1 text-xs text-gray-400 break-words">{d.texto}</p>}
+                              {d.links.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {d.links.map((u, i) => (
+                                    <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-900 text-[10px] font-black uppercase tracking-widest">
+                                      <ExternalLink className="w-3.5 h-3.5" />{d.links.length > 1 ? `Abrir conteúdo ${i + 1}` : "Abrir conteúdo"}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </>); })()}
                           </div>
                           <span className={`shrink-0 inline-flex px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${COR_STATUS[it.status] ?? COR_STATUS.nao_iniciado}`}>{ROTULO_STATUS[it.status] ?? it.status}</span>
                         </li>
