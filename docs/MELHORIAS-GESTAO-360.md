@@ -48,3 +48,9 @@ Origem: documento do Bruno (09/10/2026). Regra dele: auditar, propor, **aguardar
 - O SQL da etapa 5 NÃO estava aplicado quando Bruno disse "tudo ok" (a aba Tarefas mostrava "ainda não foram ativadas no banco"). Aplicado depois; teste de privacidade: **TUDO CERTO (23 de 23)**.
 - Bug visual corrigido: a barra de abas da ficha encolhia a altura zero quando a página ficava comprida (faltava shrink-0).
 - Lição: quando a tela diz "não foi ativado no banco", é o SQL que não rodou; conferir com `select table_name from information_schema.tables ...` antes de presumir.
+
+## Atualização 13/10/2026
+- Backup automático: `C:\dev\migracao-agenda\backup-novo.mjs` (lê o .env.local; grava em Drive/backup-banco-novo/AAAA-MM-DD-HH-MM; guarda os 8 últimos). Agendado no Windows: "Backup Agenda Pro Music", domingos 20h.
+- Cadastro público de professor fechado (reabre com ALLOW_TEACHER_SIGNUP=1). Cabeçalhos de segurança em next.config.ts.
+- Painel "Atenção" no início do professor (lib/painel-alertas.ts + dashboard/PainelAlertas.tsx).
+- Pendentes: nível musical, gestão completa de reposições, log/LGPD, fotos Firebase→Supabase, integrações; limpeza dos projetos antigos (16–24/10).
