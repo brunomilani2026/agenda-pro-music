@@ -76,6 +76,11 @@ const professorGroups: NavGroup[] = [
         href: "/alunos",
         icon: <Users className="w-5 h-5" />,
       },
+    ]
+  },
+  {
+    title: "ENSINO",
+    items: [
       {
         label: "Trilhas",
         href: "/trilhas",
