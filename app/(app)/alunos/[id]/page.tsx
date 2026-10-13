@@ -41,7 +41,7 @@ const diaSemana = (iso: string) => {
 
 const STATUS_AULA: Record<string, { label: string; cls: string; dot: string }> = {
   agendada: { label: "Agendada", cls: "bg-sky-500/10 text-sky-400 border-sky-500/20", dot: "bg-sky-400" },
-  aguardando_pagamento: { label: "Aguardando pagamento", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20", dot: "bg-amber-400" },
+  aguardando_pagamento: { label: "Aguardando pagamento", cls: "bg-blue-500/10 text-blue-400 border-blue-500/20", dot: "bg-blue-400" },
   realizada: { label: "Realizada", cls: "bg-green-500/10 text-green-400 border-green-500/20", dot: "bg-green-400" },
   cancelada: { label: "Cancelada", cls: "bg-red-500/10 text-red-400 border-red-500/20", dot: "bg-red-400" },
   remarcada: { label: "Remarcada", cls: "bg-violet-500/10 text-violet-400 border-violet-500/20", dot: "bg-violet-400" },
