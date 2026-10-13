@@ -31,7 +31,7 @@ async function avisarEntrega(ctx: NonNullable<Awaited<ReturnType<typeof alunoLog
 }
 
 export type EntregaDoAluno = Entrega;
-export type TarefaDoAluno = Tarefa & { entregas: EntregaDoAluno[]; materiais: { id: string; title: string }[]; estado: StatusTarefa };
+export type TarefaDoAluno = Tarefa & { entregas: EntregaDoAluno[]; materiais: { id: string; title: string; mime_type: string | null }[]; estado: StatusTarefa };
 
 async function alunoLogado() {
   const student = await getSessionStudent();
@@ -53,18 +53,18 @@ export async function fetchMinhasTarefas(): Promise<{ ok: true; disponivel: bool
     const tarefas = (t.data ?? []) as Tarefa[];
     const ids = tarefas.map(x => x.id);
 
-    const apoio = new Map<string, { id: string; title: string }[]>();
+    const apoio = new Map<string, { id: string; title: string; mime_type: string | null }[]>();
     if (ids.length) {
       const { data: links } = await supabase.from('task_material').select('task_fk, material_fk').in('task_fk', ids);
       const mids = [...new Set((links ?? []).map(l => l.material_fk as string))];
       if (mids.length) {
-        const { data: mats } = await supabase.from('material').select('id, title').in('id', mids);
-        const titulo = new Map((mats ?? []).map(m => [m.id as string, m.title as string]));
+        const { data: mats } = await supabase.from('material').select('id, title, mime_type').in('id', mids);
+        const titulo = new Map<string, { title: string; mime: string | null }>((mats ?? []).map(m => [m.id as string, { title: m.title as string, mime: (m.mime_type as string | null) ?? null }]));
         for (const l of links ?? []) {
           const tt = titulo.get(l.material_fk as string);
           if (!tt) continue;
           const lista = apoio.get(l.task_fk as string) ?? [];
-          lista.push({ id: l.material_fk as string, title: tt });
+          lista.push({ id: l.material_fk as string, title: tt.title, mime_type: tt.mime });
           apoio.set(l.task_fk as string, lista);
         }
       }

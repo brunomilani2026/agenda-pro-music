@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { fetchOpcoesNovaTarefa, criarTarefaEmLote, type AlunoParaTarefa } from "./lote-actions";
+import GravadorAudio from "@/components/GravadorAudio";
+import { enviarAudioComoMaterial } from "@/lib/enviar-audio-material";
+import { anexarTexto } from "@/lib/gravacao";
 
 const fmtData = (iso?: string | null) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
 const campo = "w-full bg-gray-800/60 border border-gray-700 focus:border-amber-500 focus:outline-none rounded-2xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600";
@@ -19,6 +22,8 @@ export default function NovaTarefaLote({ onCriada, onFechar }: { onCriada: (msg:
   const [escolhidos, setEscolhidos] = useState<Set<string>>(new Set());
   const [materiais, setMateriais] = useState<Set<string>>(new Set());
   const [salvando, setSalvando] = useState(false);
+  const [audio, setAudio] = useState<File | null>(null);
+  const [audioId, setAudioId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOpcoesNovaTarefa().then(r => {
@@ -34,7 +39,17 @@ export default function NovaTarefaLote({ onCriada, onFechar }: { onCriada: (msg:
     setErro(null);
     if (escolhidos.size === 0) { setErro("Escolha pelo menos um aluno."); return; }
     setSalvando(true);
-    const r = await criarTarefaEmLote([...escolhidos], { title: titulo, description: descricao, modo, due_date: data }, [...materiais]);
+    let ids = [...materiais];
+    if (audio) {
+      let id = audioId;
+      if (!id) {
+        const up = await enviarAudioComoMaterial(audio, titulo);
+        if (!up.ok) { setErro(up.error); setSalvando(false); return; }
+        id = up.id; setAudioId(id);
+      }
+      ids = [...ids, id];
+    }
+    const r = await criarTarefaEmLote([...escolhidos], { title: titulo, description: descricao, modo, due_date: data }, ids);
     setSalvando(false);
     if (!r.ok) { setErro(r.error); return; }
     onCriada(`Tarefa criada para ${r.criadas} ${r.criadas === 1 ? "aluno" : "alunos"}.${r.semAula ? ` ${r.semAula} ${r.semAula === 1 ? "aluno não tem" : "alunos não têm"} aula agendada e ficou sem prazo.` : ""}`);
@@ -49,6 +64,10 @@ export default function NovaTarefaLote({ onCriada, onFechar }: { onCriada: (msg:
 
       <input className={`${campo} md:col-span-2`} placeholder="Título da tarefa (ex.: Gravar a batida de samba)" value={titulo} maxLength={160} onChange={e => setTitulo(e.target.value)} aria-label="Título da tarefa" required />
       <textarea className={`${campo} md:col-span-2`} rows={3} placeholder="Descrição: o que o aluno deve fazer" value={descricao} maxLength={5000} onChange={e => setDescricao(e.target.value)} aria-label="Descrição" />
+
+      <div className="md:col-span-2">
+        <GravadorAudio onAudio={a => { setAudio(a); setAudioId(null); }} onTranscricao={t => setDescricao(d => anexarTexto(d, t))} />
+      </div>
 
       <fieldset className="rounded-2xl border border-gray-800 p-3 space-y-2">
         <legend className="px-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Prazo sugerido</legend>

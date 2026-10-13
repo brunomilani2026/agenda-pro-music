@@ -7,6 +7,9 @@ import {
   type TarefaCompleta,
 } from "./tarefas-actions";
 import { formatarTamanho } from "@/lib/materiais";
+import GravadorAudio from "@/components/GravadorAudio";
+import { enviarAudioComoMaterial } from "@/lib/enviar-audio-material";
+import { anexarTexto } from "@/lib/gravacao";
 import { ROTULO_STATUS_TAREFA, type StatusTarefa } from "@/lib/tarefas";
 
 const fmtData = (iso?: string | null) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
@@ -40,6 +43,9 @@ function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCanc
   const [f, setF] = useState(inicial);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [audio, setAudio] = useState<File | null>(null);
+  // Se o envio do áudio deu certo mas criar a tarefa falhou, a nova tentativa reaproveita o material (não duplica).
+  const [audioId, setAudioId] = useState<string | null>(null);
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +58,17 @@ function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCanc
       due = f.due_date;
     }
     setSalvando(true);
-    const m = await onSalvar({ ...f, due_date: due });
+    let materiais = f.materiais;
+    if (audio) {
+      let id = audioId;
+      if (!id) {
+        const up = await enviarAudioComoMaterial(audio, f.title);
+        if (!up.ok) { setErro(up.error); setSalvando(false); return; }
+        id = up.id; setAudioId(id);
+      }
+      materiais = new Set([...f.materiais, id]);
+    }
+    const m = await onSalvar({ ...f, due_date: due, materiais });
     if (m) { setErro(m); setSalvando(false); }
   };
 
@@ -61,6 +77,9 @@ function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCanc
     <form onSubmit={enviar} className="rounded-2xl border border-gray-700 bg-gray-900/60 p-4 grid gap-3 md:grid-cols-2">
       <input className={`${campo} md:col-span-2`} placeholder="Título da tarefa (ex.: Gravar a batida de samba)" value={f.title} maxLength={160} onChange={e => setF({ ...f, title: e.target.value })} aria-label="Título da tarefa" required />
       <textarea className={`${campo} md:col-span-2`} rows={3} placeholder="Descrição: o que o aluno deve fazer" value={f.description} maxLength={5000} onChange={e => setF({ ...f, description: e.target.value })} aria-label="Descrição" />
+      <div className="md:col-span-2">
+        <GravadorAudio onAudio={a => { setAudio(a); setAudioId(null); }} onTranscricao={t => setF(x => ({ ...x, description: anexarTexto(x.description, t) }))} />
+      </div>
       <fieldset className="rounded-2xl border border-gray-800 p-3 md:col-span-2 space-y-2">
         <legend className="px-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Prazo sugerido</legend>
         <label className={`${opcao} ${!proximaAula ? "opacity-50 cursor-not-allowed" : ""}`}>

@@ -27,6 +27,27 @@ async function abrirEm(buscar: () => Promise<{ ok: true; url: string } | { ok: f
   if (janela) { janela.opener = null; janela.location.href = r.url; } else window.location.href = r.url;
 }
 
+/** Áudio do professor: toca na própria página (o endereço do arquivo é temporário e só vale para este aluno). */
+function ApoioAudio({ id, titulo, onErro }: { id: string; titulo: string; onErro: (m: string) => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [carregando, setCarregando] = useState(false);
+  const ouvir = async () => {
+    setCarregando(true);
+    const r = await enderecoMeuMaterial(id);
+    setCarregando(false);
+    if (!r.ok) { onErro(r.error); return; }
+    onErro(""); setUrl(r.url);
+  };
+  return (
+    <div className="w-full rounded-2xl border border-gray-700 bg-gray-900/50 p-3 space-y-2">
+      <p className="text-xs font-bold text-white break-words">{titulo}</p>
+      {url ? <audio controls autoPlay src={url} className="w-full" aria-label={titulo} /> : (
+        <button onClick={ouvir} disabled={carregando} className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-900 text-[10px] font-black uppercase tracking-widest disabled:opacity-50">{carregando ? "Carregando…" : "Ouvir o áudio do professor"}</button>
+      )}
+    </div>
+  );
+}
+
 function FormEntrega({ tarefa, onFeito, onErro }: { tarefa: TarefaDoAluno; onFeito: () => void; onErro: (m: string) => void }) {
   const [modo, setModo] = useState<"arquivo" | "link">("arquivo");
   const [arquivo, setArquivo] = useState<File | null>(null);
@@ -138,9 +159,9 @@ export default function MinhasTarefasPage() {
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1.5">Material de apoio</p>
                   <div className="flex flex-wrap gap-2">
-                    {t.materiais.map(m => (
-                      <button key={m.id} onClick={() => abrirEm(() => enderecoMeuMaterial(m.id), setErro)} className="px-3 py-1.5 rounded-xl bg-gray-800 border border-gray-700 hover:border-amber-500/50 text-xs font-bold text-white break-words text-left">{m.title}</button>
-                    ))}
+                    {t.materiais.map(m => (m.mime_type ?? "").startsWith("audio/")
+                      ? <ApoioAudio key={m.id} id={m.id} titulo={m.title} onErro={setErro} />
+                      : <button key={m.id} onClick={() => abrirEm(() => enderecoMeuMaterial(m.id), setErro)} className="px-3 py-1.5 rounded-xl bg-gray-800 border border-gray-700 hover:border-amber-500/50 text-xs font-bold text-white break-words text-left">{m.title}</button>)}
                   </div>
                 </div>
               )}
