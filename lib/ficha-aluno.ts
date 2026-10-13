@@ -47,7 +47,7 @@ export type FichaReposicao = {
   tipo: 'reposicao' | 'pacote';
 };
 
-export type FichaAlerta = { nivel: 'aviso' | 'info' | 'perigo'; texto: string };
+export type FichaAlerta = { nivel: 'aviso' | 'info' | 'perigo'; texto: string; categoria: 'financeiro' | 'reposicao' | 'aulas' };
 
 export type FichaAluno = {
   aluno: {
@@ -194,24 +194,24 @@ export function montarFicha(params: {
 
   if (vencidas.length > 0) {
     const total = vencidas.reduce((s, f) => s + f.amount, 0);
-    alertas.push({ nivel: 'perigo', texto: `${vencidas.length} ${vencidas.length === 1 ? 'fatura vencida' : 'faturas vencidas'}, somando R$ ${total.toFixed(2).replace('.', ',')}.` });
+    alertas.push({ nivel: 'perigo', categoria: 'financeiro', texto: `${vencidas.length} ${vencidas.length === 1 ? 'fatura vencida' : 'faturas vencidas'}, somando R$ ${total.toFixed(2).replace('.', ',')}.` });
   }
   if (proxima && !proxima.atrasada) {
     const d = diasEntre(hojeIso, proxima.duedate);
-    if (d >= 0 && d <= 7) alertas.push({ nivel: 'aviso', texto: d === 0 ? 'Uma fatura vence hoje.' : `Uma fatura vence em ${d} ${d === 1 ? 'dia' : 'dias'}.` });
+    if (d >= 0 && d <= 7) alertas.push({ nivel: 'aviso', categoria: 'financeiro', texto: d === 0 ? 'Uma fatura vence hoje.' : `Uma fatura vence em ${d} ${d === 1 ? 'dia' : 'dias'}.` });
   }
   for (const r of reposicoes) {
     if (r.tipo !== 'reposicao' || r.situacao !== 'disponivel') continue;
     const d = diasEntre(hojeIso, r.validade);
-    if (d <= 14) alertas.push({ nivel: 'aviso', texto: d === 0 ? 'Uma reposição vence hoje.' : `Uma reposição vence em ${d} ${d === 1 ? 'dia' : 'dias'}.` });
+    if (d <= 14) alertas.push({ nivel: 'aviso', categoria: 'reposicao', texto: d === 0 ? 'Uma reposição vence hoje.' : `Uma reposição vence em ${d} ${d === 1 ? 'dia' : 'dias'}.` });
   }
   // Cancelamentos recorrentes: os 45 dias mais recentes, sem contar os feitos
   // pelo sistema por inadimplência (esses não dizem nada sobre o aluno faltar).
   const recentes = canceladas.filter(a => !a.motivo && a.date && diasEntre(a.date, hojeIso) >= 0 && diasEntre(a.date, hojeIso) <= 45);
-  if (recentes.length >= 3) alertas.push({ nivel: 'aviso', texto: `${recentes.length} aulas canceladas nos últimos 45 dias.` });
+  if (recentes.length >= 3) alertas.push({ nivel: 'aviso', categoria: 'aulas', texto: `${recentes.length} aulas canceladas nos últimos 45 dias.` });
   const ultima = realizadas.find(a => a.date <= hojeIso) ?? null;
-  if (ativo && futuras.length === 0) alertas.push({ nivel: 'info', texto: 'Nenhuma aula futura agendada.' });
-  if (ativo && ultima && diasEntre(ultima.date, hojeIso) > 30) alertas.push({ nivel: 'info', texto: `Última aula realizada há ${diasEntre(ultima.date, hojeIso)} dias.` });
+  if (ativo && futuras.length === 0) alertas.push({ nivel: 'info', categoria: 'aulas', texto: 'Nenhuma aula futura agendada.' });
+  if (ativo && ultima && diasEntre(ultima.date, hojeIso) > 30) alertas.push({ nivel: 'info', categoria: 'aulas', texto: `Última aula realizada há ${diasEntre(ultima.date, hojeIso)} dias.` });
 
   const totalLessons = num(aluno.totallessons);
   const usedLessons = num(aluno.usedlessons);
