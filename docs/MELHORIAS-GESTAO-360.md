@@ -54,3 +54,11 @@ Origem: documento do Bruno (09/10/2026). Regra dele: auditar, propor, **aguardar
 - Cadastro público de professor fechado (reabre com ALLOW_TEACHER_SIGNUP=1). Cabeçalhos de segurança em next.config.ts.
 - Painel "Atenção" no início do professor (lib/painel-alertas.ts + dashboard/PainelAlertas.tsx).
 - Pendentes: nível musical, gestão completa de reposições, log/LGPD, fotos Firebase→Supabase, integrações; limpeza dos projetos antigos (16–24/10).
+
+## Atualização 13/10/2026 (tarde)
+- Painel "Atenção": diário só conta aulas após 13/10/2026 e vira 1 linha. 
+- Nível musical (SQL 07) e trava do aluno na própria ficha (SQL 08): aplicados e testados (TUDO CERTO).
+- Google Agenda por link: rota /api/calendario?t=<ICS_TOKEN> (env ICS_TOKEN, ICS_TEACHER_ID na Vercel). Só primeiro nome + instrumento. Para desligar: apagar ICS_TOKEN e Redeploy.
+- Resumo diário por e-mail: /api/cron/resumo, vercel.json "0 10 * * *" (07h BRT, ±1h). Bruno filtra no Gmail (assunto "Resumo do dia" -> marcador "Agenda Pro", pula caixa de entrada) para o briefing ler.
+- Reposições completas: decidido NÃO fazer por ora. App financeiro: fora de escopo.
+- Pendente: limpeza dos projetos antigos Vercel/Supabase/GitHub (16–24/10/2026); incluir seção Agenda Pro no briefing (Assistente Executivo).
