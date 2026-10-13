@@ -68,9 +68,9 @@ export default function PainelAlertas() {
               <ul className="space-y-2">
                 {mostrados.map((a, i) => (
                   <li key={`${a.alunoId}-${i}`}>
-                    <Link href={`/alunos/${a.alunoId}`} className={`flex items-start gap-3 rounded-xl border px-4 py-3 hover:brightness-125 transition ${COR[a.nivel]}`}>
+                    <Link href={a.alunoId ? `/alunos/${a.alunoId}` : "/alunos"} className={`flex items-start gap-3 rounded-xl border px-4 py-3 hover:brightness-125 transition ${COR[a.nivel]}`}>
                       <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${PONTO[a.nivel]}`} aria-hidden="true" />
-                      <span className="text-sm min-w-0 break-words"><strong className="text-white">{a.aluno}</strong> — {a.texto}</span>
+                      <span className="text-sm min-w-0 break-words">{a.aluno ? <><strong className="text-white">{a.aluno}</strong> — </> : null}{a.texto}</span>
                     </Link>
                   </li>
                 ))}

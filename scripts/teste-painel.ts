@@ -16,13 +16,14 @@ const r = montarAlertas({
   registros: [{ idlesson_fk: 'l4' }],
   tarefas: [{ id: 't1', idstudent_fk: 'c', title: 'x', status: 'aberta', due_date: null }, { id: 't2', idstudent_fk: 'c', title: 'y', status: 'aberta', due_date: '2026-10-01' }],
   entregas: [{ task_fk: 't1', created_at: '2026-10-12T10:00:00Z', feedback_at: null }],
-  hojeIso: hoje, agoraMin: 600,
+  hojeIso: hoje, agoraMin: 600, diarioDesde: '2026-01-01',
 });
 const de = (n: string) => r.filter(a => a.aluno === n);
 t('inativo não aparece', de('Beto').length === 0);
 t('Ana: fatura vencida (perigo)', de('Ana').some(a => a.categoria === 'financeiro' && a.nivel === 'perigo'));
-t('Ana: aula sem registro', de('Ana').some(a => a.categoria === 'diario'));
-t('Caio: aula de ontem não cobra registro ainda', !de('Caio').some(a => a.categoria === 'diario'));
+t('diário: uma linha só', r.filter(a => a.categoria === 'diario').length === 1 && r.find(a => a.categoria === 'diario')!.texto.startsWith('1 aluno'));
+const r2 = montarAlertas({ alunos, aulas: [aula('l1', 'a', '2026-10-08', 'realizada')], faturas: [], creditos: [], registros: [], tarefas: [], entregas: [], hojeIso: hoje, agoraMin: 600 });
+t('aula antes do lançamento não gera alerta', !r2.some(a => a.categoria === 'diario'));
 t('Caio: entrega aguardando', de('Caio').some(a => a.texto.includes('aguardando')));
 t('Caio: tarefa atrasada', de('Caio').some(a => a.texto.includes('atrasada')));
 t('ordenado: perigo primeiro', r[0].nivel === 'perigo');

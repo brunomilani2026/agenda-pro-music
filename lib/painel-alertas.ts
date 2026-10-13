@@ -15,6 +15,7 @@ export type AlertaPainel = { alunoId: string; aluno: string; categoria: Categori
 
 export const DIAS_SEM_REGISTRO = 2;      // aula realizada há mais de 2 dias sem registro no diário
 export const JANELA_DIARIO_DIAS = 30;    // só olha as aulas dos últimos 30 dias
+export const DIARIO_DESDE = '2026-10-13'; // data de lançamento do diário: aulas anteriores não geram pendência
 
 const PESO: Record<NivelAlerta, number> = { perigo: 0, aviso: 1, info: 2 };
 
@@ -34,8 +35,11 @@ export function montarAlertas(p: {
   entregas: { task_fk: string; created_at: string; feedback_at: string | null }[];
   hojeIso: string;
   agoraMin: number;
+  diarioDesde?: string;
 }): AlertaPainel[] {
   const { hojeIso, agoraMin } = p;
+  const diarioDesde = p.diarioDesde ?? DIARIO_DESDE;
+  let alunosSemDiario = 0;
   const comRegistro = new Set(p.registros.map(r => r.idlesson_fk));
   const entregasPorTarefa = new Map<string, { created_at: string; feedback_at: string | null }[]>();
   for (const e of p.entregas) {
@@ -62,11 +66,9 @@ export function montarAlertas(p: {
 
     // Diário: aulas realizadas recentemente que ainda não têm registro.
     const semRegistro = ficha.aulas.filter(a =>
-      a.status === 'realizada' && !comRegistro.has(a.id) &&
+      a.status === 'realizada' && !comRegistro.has(a.id) && a.date >= diarioDesde &&
       diasEntre(a.date, hojeIso) > DIAS_SEM_REGISTRO && diasEntre(a.date, hojeIso) <= JANELA_DIARIO_DIAS);
-    if (semRegistro.length > 0) {
-      add('diario', 'aviso', semRegistro.length === 1 ? '1 aula recente sem registro no diário.' : `${semRegistro.length} aulas recentes sem registro no diário.`);
-    }
+    if (semRegistro.length > 0) alunosSemDiario++;
 
     // Tarefas: entregas aguardando retorno e tarefas atrasadas.
     let aguardando = 0, atrasadas = 0;
@@ -78,6 +80,11 @@ export function montarAlertas(p: {
     }
     if (aguardando > 0) add('tarefas', 'aviso', aguardando === 1 ? '1 entrega aguardando o seu retorno.' : `${aguardando} entregas aguardando o seu retorno.`);
     if (atrasadas > 0) add('tarefas', 'info', atrasadas === 1 ? '1 tarefa atrasada.' : `${atrasadas} tarefas atrasadas.`);
+  }
+
+  // Diário: uma linha só, de baixa prioridade, para não afogar o que é urgente.
+  if (alunosSemDiario > 0) {
+    saida.push({ alunoId: '', aluno: '', categoria: 'diario', nivel: 'info', texto: alunosSemDiario === 1 ? '1 aluno com aulas sem registro no diário.' : `${alunosSemDiario} alunos com aulas sem registro no diário.` });
   }
 
   return saida.sort((a, b) => PESO[a.nivel] - PESO[b.nivel] || a.aluno.localeCompare(b.aluno, 'pt-BR'));
