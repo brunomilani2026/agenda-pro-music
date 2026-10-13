@@ -38,3 +38,8 @@ Origem: documento do Bruno (09/10/2026). Regra dele: auditar, propor, **aguardar
 - Telas do aluno: `/aluno/diario` (registros liberados via visão `lesson_record_shared`, recados compartilhados e anotações PESSOAIS CRUD), `/aluno/estudos` (plano somente leitura + evolução), `/aluno/materiais` (compartilhados; arquivo por link temporário de 2 min, caminho nunca sai do servidor).
 - Sem SQL novo. Pendente: Bruno validar logado como aluno (janela anônima!).
 - Falta: etapa 5 (tarefas/entregas, aluno envia áudio/vídeo; exige novas tabelas + bucket de entregas) e indicadores/alertas ampliados.
+
+## Etapa 5 (tarefas e entregas) e portal do aluno: concluídos (13/10/2026)
+- Bruno confirmou "já está tudo ok" após rodar o SQL `06-*.sql` e os testes (cópia no Drive: sql-etapa-5-tarefas). **Texto exato do resultado do teste de privacidade da etapa 5 não foi enviado** (conferir se aparece "TUDO CERTO" na próxima oportunidade).
+- Roteiro original (1 a 6) entregue. Melhorias futuras sugeridas: avisos automáticos (sino/e-mail) em entregas e retornos; indicadores e alertas no painel (alunos sem registro recente, faltas seguidas); mover fotos do Firebase para o Supabase Storage; desativar /cadastro público; Google Calendar, resumo para o briefing diário e integração com o app financeiro.
+- Pendências da troca: GitHub antigo (senha+2FA); apagar projetos antigos Vercel/Supabase entre 16 e 24/10/2026 (backup JSON no Drive: backup-banco-antigo).
