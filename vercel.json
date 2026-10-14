@@ -16,5 +16,8 @@
       "path": "/api/cron/renovar-agenda",
       "schedule": "30 9 * * *"
     }
+  ],
+  "regions": [
+    "gru1"
   ]
 }
