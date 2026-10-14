@@ -1142,6 +1142,105 @@ export async function releaseLessonForStudentReschedule(
 }
 
 /**
+ * O professor marca a reposição por conta própria, gastando o crédito do aluno.
+ * Faz o mesmo que a aprovação de uma solicitação (approveRequest), sem o aluno
+ * precisar pedir: cria a aula, consome o crédito de reposição e marca a aula
+ * cancelada de origem como remarcada.
+ */
+export async function marcarReposicaoPeloProfessor(
+  creditId: string,
+  date: string,
+  startTime: string,
+  endTime: string
+): Promise<{ success: boolean; error?: string; warning?: string }> {
+  try {
+    const dbUser = await getSessionUser();
+    if (!dbUser) return { success: false, error: 'Sessão inválida.' };
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}/.test(startTime) || !/^\d{2}:\d{2}/.test(endTime)) {
+      return { success: false, error: 'Informe data, início e término da aula.' };
+    }
+    startTime = startTime.slice(0, 5);
+    endTime = endTime.slice(0, 5);
+    if (endTime <= startTime) return { success: false, error: 'O término precisa ser depois do início.' };
+    const hoje = getLocalISODate();
+    if (date < hoje) return { success: false, error: 'Escolha uma data de hoje em diante.' };
+
+    const db = await createClient();
+    const { data: credit } = await db.from('credit').select('*').eq('id', creditId).eq('idusers_fk', dbUser.idusers).maybeSingle();
+    if (!credit || !credit.origin_lesson_fk) return { success: false, error: 'Crédito de reposição não encontrado.' };
+    if (credit.used) return { success: false, error: 'Este crédito já foi utilizado.' };
+    if (credit.expires_at < hoje) return { success: false, error: 'Este crédito de reposição já expirou.' };
+    if (date > credit.expires_at) {
+      return { success: false, error: `A reposição precisa ser até ${fmtDate(credit.expires_at)}, a validade do crédito.` };
+    }
+
+    const student = await StudentService.getStudentById(credit.idstudent_fk);
+    if (!student) return { success: false, error: 'Aluno não encontrado.' };
+
+    const [conflict, origemRes] = await Promise.all([
+      checkLessonConflict(dbUser.idusers, date, startTime, endTime),
+      db.from('lesson').select('instrument').eq('idlesson', credit.origin_lesson_fk).maybeSingle(),
+    ]);
+    if (conflict) {
+      return { success: false, error: `Conflito de horário: ${conflict.reason} das ${conflict.starttime} às ${conflict.endtime} nesta data.` };
+    }
+
+    const created = await LessonService.createLesson({
+      studentname: student.name,
+      student_fk: student.idstudent,
+      teachername: dbUser.fname,
+      instrument: origemRes.data?.instrument || student.instrument || '',
+      date,
+      starttime: startTime,
+      endtime: endTime,
+      datelesson: new Date(`${date}T12:00:00Z`).toISOString(),
+      lessonstatus: 'agendada' as any,
+      obs: 'Reposição de aula cancelada',
+      idusers_fk: dbUser.idusers,
+    } as any);
+    if (!created) return { success: false, error: 'Erro ao criar a aula de reposição. Tente novamente.' };
+
+    // Só queima o crédito com a aula garantida; se outra execução o gastou antes, desfaz a aula.
+    const consumed = await CreditService.useCredit(credit.id);
+    if (!consumed) {
+      await LessonService.deleteLesson(created.idlesson);
+      return { success: false, error: 'Este crédito já foi utilizado. Atualize a página.' };
+    }
+
+    await LessonService.updateLesson(credit.origin_lesson_fk, { lessonstatus: 'remarcada' as any });
+
+    const msg = `Sua reposição foi agendada para ${fmtDate(date)} às ${startTime}. Sem cobrança adicional.`;
+    let warning: string | undefined;
+    const [notif, emailRes] = await Promise.all([
+      NotificationService.create({
+        idstudent_fk: student.idstudent,
+        idusers_fk: dbUser.idusers,
+        recipient: 'student',
+        type: 'confirmacao',
+        title: 'Reposição agendada!',
+        message: msg,
+      }),
+      emailStudent(student.idstudent, {
+        title: 'Reposição agendada!',
+        message: msg,
+        buttonLabel: 'Ver minhas aulas',
+        buttonPath: '/aluno/dashboard',
+      }),
+    ]);
+    if (!notif) warning = 'Reposição marcada, mas a notificação no app não pôde ser gravada. Avise o aluno.';
+    else if (!emailRes.ok) warning = `Reposição marcada e aluno avisado no app, mas o e-mail falhou: ${emailFailureText(emailRes)}`;
+
+    updateTag('aluno-lessons');
+    updateTag('aluno-credits');
+    return { success: true, warning };
+  } catch (err: any) {
+    console.error('Error scheduling replacement by teacher:', err.message);
+    return { success: false, error: 'Erro ao marcar a reposição.' };
+  }
+}
+
+/**
  * Apaga aulas resolvendo antes tudo que aponta para elas — as três tabelas com
  * FK para lesson não têm ON DELETE, então qualquer referência pendurada derruba
  * o DELETE com violação de FK (23503) e o professor só vê "erro ao excluir":
