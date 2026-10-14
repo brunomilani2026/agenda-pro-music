@@ -285,7 +285,6 @@ export default function FichaAlunoPage() {
   const [repoAlvo, setRepoAlvo] = useState<FichaReposicao | null>(null);
   const [repoData, setRepoData] = useState("");
   const [repoInicio, setRepoInicio] = useState("");
-  const [repoFim, setRepoFim] = useState("");
   const [repoErro, setRepoErro] = useState<string | null>(null);
   const [repoMsg, setRepoMsg] = useState<string | null>(null);
   const [repoSalvando, setRepoSalvando] = useState(false);
@@ -299,7 +298,7 @@ export default function FichaAlunoPage() {
     if (!repoAlvo) return;
     setRepoSalvando(true); setRepoErro(null);
     try {
-      const r = await marcarReposicaoPeloProfessor(repoAlvo.id, repoData, repoInicio, repoFim);
+      const r = await marcarReposicaoPeloProfessor(repoAlvo.id, repoData, repoInicio, somarHora(repoInicio, 50));
       if (!r.success) { setRepoErro(r.error ?? "Não foi possível marcar a reposição."); return; }
       setRepoMsg(r.warning ?? "Reposição marcada e aluno avisado.");
       setRepoAlvo(null);
@@ -850,24 +849,21 @@ export default function FichaAlunoPage() {
       {aba === "reposicoes" && (
         <Painel titulo={`Reposições e créditos (${ficha.reposicoes.length})`} acao={<Repeat className="w-4 h-4 text-amber-500" />}>
           {repoMsg && <p role="status" className="mb-3 text-sm text-green-400 font-medium">{repoMsg}</p>}
-          {ficha.reposicoes.length ? <ul className="divide-y divide-gray-800">{ficha.reposicoes.map(r => <LinhaReposicao key={r.id} r={r} onMarcar={x => { setRepoAlvo(x); setRepoData(""); setRepoInicio(""); setRepoFim(""); setRepoErro(null); setRepoMsg(null); }} />)}</ul> : <p className="text-sm text-gray-500">Nenhum crédito ou reposição registrado.</p>}
+          {ficha.reposicoes.length ? <ul className="divide-y divide-gray-800">{ficha.reposicoes.map(r => <LinhaReposicao key={r.id} r={r} onMarcar={x => { setRepoAlvo(x); setRepoData(""); setRepoInicio(""); setRepoErro(null); setRepoMsg(null); }} />)}</ul> : <p className="text-sm text-gray-500">Nenhum crédito ou reposição registrado.</p>}
           {repoAlvo && (
             <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
               <p className="text-sm font-bold text-white">Marcar reposição{repoAlvo.origemData ? ` da aula de ${fmtData(repoAlvo.origemData)}` : ""} (até {fmtData(repoAlvo.validade)})</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="text-xs text-gray-400">Dia
                   <input type="date" value={repoData} min={new Date().toISOString().slice(0, 10)} max={repoAlvo.validade} onChange={e => setRepoData(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
                 </label>
                 <label className="text-xs text-gray-400">Início
-                  <input type="time" value={repoInicio} onChange={e => { setRepoInicio(e.target.value); setRepoFim(somarHora(e.target.value, 60)); }} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
-                </label>
-                <label className="text-xs text-gray-400">Término
-                  <input type="time" value={repoFim} onChange={e => setRepoFim(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
+                  <input type="time" value={repoInicio} onChange={e => setRepoInicio(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
                 </label>
               </div>
               {repoErro && <p role="alert" className="text-sm text-red-400 font-medium">{repoErro}</p>}
               <div className="flex gap-2">
-                <button type="button" disabled={repoSalvando || !repoData || !repoInicio || !repoFim} onClick={confirmarReposicao} className="px-4 py-2 rounded-xl bg-amber-500 text-gray-900 text-xs font-black uppercase tracking-widest disabled:opacity-50">{repoSalvando ? "Marcando..." : "Confirmar e avisar o aluno"}</button>
+                <button type="button" disabled={repoSalvando || !repoData || !repoInicio} onClick={confirmarReposicao} className="px-4 py-2 rounded-xl bg-amber-500 text-gray-900 text-xs font-black uppercase tracking-widest disabled:opacity-50">{repoSalvando ? "Marcando..." : "Confirmar e avisar o aluno"}</button>
                 <button type="button" onClick={() => setRepoAlvo(null)} className="px-4 py-2 rounded-xl border border-gray-700 text-gray-300 text-xs font-black uppercase tracking-widest">Cancelar</button>
               </div>
             </div>
