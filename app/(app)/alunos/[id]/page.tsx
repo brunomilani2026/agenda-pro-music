@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BookOpen, CalendarClock, Edit3, Info, ListChecks, Lock, Package, Plus, RefreshCw, Repeat, Trash2, Wallet, X } from "lucide-react";
 import { definirNivelMusical, fetchFichaAluno } from "./actions";
 import { marcarReposicaoPeloProfessor } from "../../agenda/actions";
+import { useAppContext } from "../../AppContext";
 import { NIVEIS_MUSICAIS, ROTULO_NIVEL } from "@/lib/nivel-musical";
 import { apagarNota, fetchDiario, salvarNota, salvarRegistroAula } from "./diario-actions";
 import { adicionarItemAluno, alterarStatusEstudo, fetchPlano, moverItemAluno, removerItemAluno } from "./estudos-actions";
@@ -257,6 +258,7 @@ function LinhaReposicao({ r, onMarcar }: { r: FichaReposicao; onMarcar?: (r: Fic
 export default function FichaAlunoPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
+  const { reloadLoadedLessons } = useAppContext();
   const [ficha, setFicha] = useState<FichaAluno | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -302,7 +304,9 @@ export default function FichaAlunoPage() {
       if (!r.success) { setRepoErro(r.error ?? "Não foi possível marcar a reposição."); return; }
       setRepoMsg(r.warning ?? "Reposição marcada e aluno avisado.");
       setRepoAlvo(null);
-      await carregar();
+      // A Agenda lê as aulas do AppContext (carregado uma vez no navegador): sem
+      // isto a reposição só aparecia nela depois de um F5.
+      await Promise.all([carregar(), reloadLoadedLessons().catch(() => {})]);
     } catch {
       setRepoErro("Não foi possível marcar a reposição. Tente de novo.");
     } finally {
