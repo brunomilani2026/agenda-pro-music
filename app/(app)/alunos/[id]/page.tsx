@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BookOpen, CalendarClock, Edit3, Info, ListChecks, Lock, Package, Plus, RefreshCw, Repeat, Trash2, Wallet, X } from "lucide-react";
 import { definirNivelMusical, fetchFichaAluno } from "./actions";
-import { marcarReposicaoPeloProfessor } from "../../agenda/actions";
+import { marcarReposicaoPeloProfessor, settlePaymentManually } from "../../agenda/actions";
 import { useAppContext } from "../../AppContext";
 import { NIVEIS_MUSICAIS, ROTULO_NIVEL } from "@/lib/nivel-musical";
 import { apagarNota, fetchDiario, salvarNota, salvarRegistroAula } from "./diario-actions";
@@ -216,7 +216,7 @@ function RegistroModal({ aula, registro, biblioteca, carregarSelecionados, onFec
   );
 }
 
-function LinhaFatura({ f }: { f: FichaFatura }) {
+function LinhaFatura({ f, onBaixa }: { f: FichaFatura; onBaixa?: (f: FichaFatura) => void }) {
   const chave = f.atrasada && f.status === "pendente" ? "vencido" : f.status;
   const st = STATUS_FATURA[chave] ?? STATUS_FATURA.pendente;
   return (
@@ -227,6 +227,9 @@ function LinhaFatura({ f }: { f: FichaFatura }) {
           {f.status === "pago" ? `Paga em ${fmtData(f.paymentdate)}${f.method ? ` · ${f.method}` : ""}` : f.alunoAvisouEm ? `Aluno avisou que pagou em ${fmtData(f.alunoAvisouEm)}` : f.notes || "Em aberto"}
         </p>
       </div>
+      {onBaixa && (f.status === "pendente" || f.status === "vencido") && (
+        <button type="button" onClick={() => onBaixa(f)} className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500">Marcar como paga</button>
+      )}
       <Selo cls={st.cls}>{st.label}</Selo>
     </li>
   );
@@ -258,7 +261,7 @@ function LinhaReposicao({ r, onMarcar }: { r: FichaReposicao; onMarcar?: (r: Fic
 export default function FichaAlunoPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
-  const { reloadLoadedLessons } = useAppContext();
+  const { reloadLoadedLessons, refreshPayments, refreshStudents } = useAppContext();
   const [ficha, setFicha] = useState<FichaAluno | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -282,6 +285,31 @@ export default function FichaAlunoPage() {
   }, [id]);
 
   useEffect(() => { carregar(); }, [carregar]);
+
+  // Dar baixa numa fatura direto da ficha (mesma ação do Financeiro).
+  const [baixaAlvo, setBaixaAlvo] = useState<FichaFatura | null>(null);
+  const [baixaMetodo, setBaixaMetodo] = useState<"pix" | "dinheiro" | "transferencia">("pix");
+  const [baixaData, setBaixaData] = useState("");
+  const [baixaObs, setBaixaObs] = useState("");
+  const [baixaErro, setBaixaErro] = useState<string | null>(null);
+  const [baixaMsg, setBaixaMsg] = useState<string | null>(null);
+  const [baixaSalvando, setBaixaSalvando] = useState(false);
+  const confirmarBaixa = async () => {
+    if (!baixaAlvo) return;
+    setBaixaSalvando(true); setBaixaErro(null);
+    try {
+      const r = await settlePaymentManually(baixaAlvo.id, { method: baixaMetodo, paymentdate: baixaData || undefined, notes: baixaObs || undefined });
+      if (!r.success) { setBaixaErro(r.error ?? "Não foi possível dar baixa."); return; }
+      setBaixaMsg(r.warning ?? "Pagamento registrado como recebido. O aluno foi notificado.");
+      setBaixaAlvo(null);
+      // Baixa muda fatura, vencimento do plano e saldo: recarrega ficha e contexto.
+      await Promise.all([carregar(), refreshPayments().catch(() => {}), refreshStudents().catch(() => {})]);
+    } catch {
+      setBaixaErro("Não foi possível dar baixa. Tente de novo.");
+    } finally {
+      setBaixaSalvando(false);
+    }
+  };
 
   // Marcar reposição pelo professor (gasta o crédito do aluno).
   const [repoAlvo, setRepoAlvo] = useState<FichaReposicao | null>(null);
@@ -845,8 +873,33 @@ export default function FichaAlunoPage() {
 
       {aba === "financeiro" && (
         <Painel titulo={`Faturas (${ficha.faturas.length})`} acao={<Link href="/financeiro" className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Abrir o Financeiro</Link>}>
-          <p className="text-xs text-gray-600 mb-3">Dados oficiais do Financeiro. Para registrar pagamento, use a tela Financeiro.</p>
-          {ficha.faturas.length ? <ul className="divide-y divide-gray-800">{ficha.faturas.map(f => <LinhaFatura key={f.id} f={f} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma fatura registrada.</p>}
+          <p className="text-xs text-gray-600 mb-3">Dados oficiais do Financeiro. Para receber uma fatura, use "Marcar como paga"; renegociar ou excluir continua na tela Financeiro.</p>
+          {baixaMsg && <p role="status" className="mb-3 text-sm text-green-400 font-medium">{baixaMsg}</p>}
+          {ficha.faturas.length ? <ul className="divide-y divide-gray-800">{ficha.faturas.map(f => <LinhaFatura key={f.id} f={f} onBaixa={x => { setBaixaAlvo(x); setBaixaMetodo("pix"); setBaixaData(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })); setBaixaObs(""); setBaixaErro(null); setBaixaMsg(null); }} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma fatura registrada.</p>}
+          {baixaAlvo && (
+            <div className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3">
+              <p className="text-sm font-bold text-white">Marcar como paga: {fmtMoeda(baixaAlvo.amount)} · vence {fmtData(baixaAlvo.duedate)}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="text-xs text-gray-400">Como recebeu
+                  <select value={baixaMetodo} onChange={e => setBaixaMetodo(e.target.value as "pix" | "dinheiro" | "transferencia")} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white">
+                    <option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="transferencia">Transferência</option>
+                  </select>
+                </label>
+                <label className="text-xs text-gray-400">Data do recebimento
+                  <input type="date" value={baixaData} onChange={e => setBaixaData(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
+                </label>
+              </div>
+              <label className="block text-xs text-gray-400">Observação (opcional)
+                <input type="text" value={baixaObs} onChange={e => setBaixaObs(e.target.value)} placeholder="Ex: Pix recebido direto na conta" className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
+              </label>
+              <p className="text-xs text-gray-500">O aluno será notificado e, se for plano ou pacote, créditos e vencimento são atualizados.</p>
+              {baixaErro && <p role="alert" className="text-sm text-red-400 font-medium">{baixaErro}</p>}
+              <div className="flex gap-2">
+                <button type="button" disabled={baixaSalvando || !baixaData} onClick={confirmarBaixa} className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase tracking-widest disabled:opacity-50">{baixaSalvando ? "Registrando..." : "Confirmar recebimento"}</button>
+                <button type="button" onClick={() => setBaixaAlvo(null)} className="px-4 py-2 rounded-xl border border-gray-700 text-gray-300 text-xs font-black uppercase tracking-widest">Cancelar</button>
+              </div>
+            </div>
+          )}
         </Painel>
       )}
 
