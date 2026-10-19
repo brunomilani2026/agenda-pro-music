@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
     EMAILJS_TEMPLATE_NOTIFICATION: !!process.env.EMAILJS_TEMPLATE_NOTIFICATION,
     EMAILJS_TEMPLATE_STUDENT_CONFIRM: !!process.env.EMAILJS_TEMPLATE_STUDENT_CONFIRM,
     BREVO_API_KEY: !!process.env.BREVO_API_KEY,
+    // Só o formato (8 primeiros caracteres = tipo da chave, e o tamanho), nunca o valor: ajuda a ver se colou a chave de API ou a SMTP.
+    brevo_chave_formato: process.env.BREVO_API_KEY ? `${process.env.BREVO_API_KEY.trim().slice(0, 8)}… (${process.env.BREVO_API_KEY.trim().length} caracteres${process.env.BREVO_API_KEY !== process.env.BREVO_API_KEY.trim() ? ", com espaço sobrando" : ""})` : null,
     enviando_por: process.env.BREVO_API_KEY && process.env.BREVO_DESLIGADO !== '1' ? 'Brevo' : 'EmailJS',
   };
 
