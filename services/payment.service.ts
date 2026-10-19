@@ -517,12 +517,52 @@ export class PaymentService {
       ? `Seu pagamento foi confirmado. ${creditsToRelease} crédito${creditsToRelease > 1 ? 's' : ''} liberado${creditsToRelease > 1 ? 's' : ''} — você já pode agendar suas aulas!`
       : 'Seu pagamento foi confirmado. Sua agenda está liberada para novas aulas.';
 
+    // A confirmação ao aluno sai SEMPRE: antes ela vivia dentro de
+    // unblockIfNoDebt e sumia em silêncio quando sobrava outra fatura vencida.
+    const { error: pagoNotifErr } = await supabase.from('notification').insert([{
+      idusers_fk: pmt.idusers_fk,
+      idstudent_fk: pmt.idstudent_fk,
+      recipient: 'student',
+      type: 'sistema',
+      title: 'Pagamento confirmado!',
+      message: pagoMsg,
+      read: false,
+    }]);
+    if (pagoNotifErr) console.error('settlePayment: erro ao notificar pagamento ao aluno:', pagoNotifErr.message);
+    await afterResponse(() => emailStudent(pmt.idstudent_fk, {
+      title: 'Pagamento confirmado!',
+      message: pagoMsg,
+      buttonLabel: 'Acessar painel',
+      buttonPath: '/aluno/dashboard',
+    }));
+
+    // E o professor também é avisado de todo recebimento (baixa manual ou Asaas).
+    const valorFmt = `R$ ${Number(pmt.amount || 0).toFixed(2).replace('.', ',')}`;
+    const dataFmt = String(updates.paymentdate).split('-').reverse().join('/');
+    const metodoFmt = ({ pix: 'Pix', dinheiro: 'dinheiro', transferencia: 'transferência' } as Record<string, string>)[String(method).toLowerCase()] ?? String(method);
+    const recebidoMsg = `${studentPlan?.name || 'O aluno'} pagou ${valorFmt} (vencimento ${String(pmt.duedate).split('-').reverse().join('/')}), recebido em ${dataFmt} por ${metodoFmt}. Está tudo certo: o aluno foi avisado e a agenda dele segue liberada.`;
+    const { error: recNotifErr } = await supabase.from('notification').insert([{
+      idusers_fk: pmt.idusers_fk,
+      idstudent_fk: pmt.idstudent_fk,
+      recipient: 'teacher',
+      type: 'sistema',
+      title: 'Pagamento recebido',
+      message: recebidoMsg,
+      read: false,
+    }]);
+    if (recNotifErr) console.error('settlePayment: erro ao notificar recebimento ao professor:', recNotifErr.message);
+    await afterResponse(() => emailTeacher(pmt.idusers_fk, {
+      title: 'Pagamento recebido',
+      message: recebidoMsg,
+      buttonLabel: 'Ver financeiro',
+      buttonPath: '/financeiro',
+    }));
+
     await this.unblockIfNoDebt(pmt.idstudent_fk, {
       idusers_fk: pmt.idusers_fk,
-      studentTitle: 'Pagamento confirmado!',
-      studentMessage: pagoMsg,
       previousStatus: studentPlan?.status,
       studentName: studentPlan?.name,
+      notifyStudent: false,
       db: supabase,
     });
 
