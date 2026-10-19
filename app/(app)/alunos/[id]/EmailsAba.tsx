@@ -5,11 +5,19 @@ import { AlertTriangle, CheckCircle2, ChevronDown, Mail, X } from "lucide-react"
 import { fetchEmailsAluno, type EmailAluno } from "./emails-actions";
 import { MODELOS_EMAIL, ROTULO_TIPO, TIPOS_EMAIL, type TipoEmail } from "@/lib/email-tipos";
 import { emailFailureText } from "@/lib/email-failure";
+import { diasSemLer } from "@/lib/email-lida";
 
 const fmtDataHora = (iso: string) => {
   const d = new Date(iso);
   return `${d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} ${d.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}`;
 };
+
+function Leitura({ i }: { i: EmailAluno }) {
+  if (i.lida === null || i.status === "falhou") return null;
+  if (i.lida) return <span className="text-green-400">Aviso no app lido{i.lida_em ? ` em ${fmtDataHora(i.lida_em)}` : ""}</span>;
+  const dias = diasSemLer(i.created_at);
+  return <span className={dias ? "text-amber-400 font-bold" : "text-gray-400"}>{dias ? `Aviso no app não lido há ${dias} dias` : "Aviso no app não lido"}</span>;
+}
 
 function CartaoEmail({ titulo, texto, botao, url }: { titulo: string; texto: string | null; botao?: string | null; url?: string | null }) {
   // Prévia fiel ao que o aluno recebe: faixa escura com dourado, título, texto e botão.
@@ -39,6 +47,7 @@ export default function EmailsAba({ alunoId }: { alunoId: string }) {
   const [filtro, setFiltro] = useState<TipoEmail | "todos">("todos");
   const [aberto, setAberto] = useState<EmailAluno | null>(null);
   const [modelos, setModelos] = useState(false);
+  const [soNaoLidas, setSoNaoLidas] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -61,7 +70,8 @@ export default function EmailsAba({ alunoId }: { alunoId: string }) {
     return r;
   }, [itens, trintaDias]);
   const ultimo = itens.find(i => i.origem === "email");
-  const visiveis = itens.filter(i => filtro === "todos" || i.tipo === filtro);
+  const naoLidas = itens.filter(i => i.lida === false && i.status !== "falhou").length;
+  const visiveis = itens.filter(i => (filtro === "todos" || i.tipo === filtro) && (!soNaoLidas || (i.lida === false && i.status !== "falhou")));
   const tiposComItem = TIPOS_EMAIL.filter(t => itens.some(i => i.tipo === t));
 
   if (carregando) return <div className="space-y-3 animate-pulse" aria-busy="true"><div className="h-24 rounded-3xl bg-gray-800/60" /><div className="h-48 rounded-3xl bg-gray-800/60" /></div>;
@@ -99,6 +109,7 @@ export default function EmailsAba({ alunoId }: { alunoId: string }) {
               <h2 className="text-xs font-black uppercase tracking-widest text-gray-400">E-mails para {emailAluno ?? "este aluno"}</h2>
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={() => setFiltro("todos")} className={`px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${filtro === "todos" ? "bg-amber-500 text-gray-900 border-amber-500" : "border-gray-700 text-gray-400 hover:text-white"}`}>Todos ({itens.length})</button>
+                <button type="button" onClick={() => setSoNaoLidas(v => !v)} aria-pressed={soNaoLidas} className={`px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${soNaoLidas ? "bg-amber-500 text-gray-900 border-amber-500" : "border-gray-700 text-gray-400 hover:text-white"}`}>Não lidos ({naoLidas})</button>
                 {tiposComItem.map(t => (
                   <button key={t} type="button" onClick={() => setFiltro(t)} className={`px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${filtro === t ? "bg-amber-500 text-gray-900 border-amber-500" : "border-gray-700 text-gray-400 hover:text-white"}`}>{ROTULO_TIPO[t]}</button>
                 ))}
@@ -113,6 +124,7 @@ export default function EmailsAba({ alunoId }: { alunoId: string }) {
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-bold text-white break-words">{i.title}</span>
                         <span className="block text-xs text-gray-500">{fmtDataHora(i.created_at)} · {ROTULO_TIPO[i.tipo]}</span>
+                        <span className="block text-xs"><Leitura i={i} /></span>
                       </span>
                       <span className={`shrink-0 text-[10px] font-black uppercase tracking-widest ${i.status === "falhou" ? "text-red-400" : i.status === "enviado" ? "text-green-400" : "text-gray-500"}`}>
                         {i.status === "falhou" ? "Falhou" : i.status === "enviado" ? "Enviado" : "Aviso no portal"}
@@ -122,7 +134,7 @@ export default function EmailsAba({ alunoId }: { alunoId: string }) {
                 ))}
               </ul>
             )}
-            <p className="mt-4 text-xs text-gray-500">&quot;Enviado&quot; significa que o provedor de e-mail aceitou o envio; não garante que o aluno abriu ou que não caiu no spam. &quot;Aviso no portal&quot; são avisos antigos, de antes do registro de e-mails existir: normalmente tiveram um e-mail espelho, sem garantia.</p>
+            <p className="mt-4 text-xs text-gray-500">&quot;Enviado&quot; significa que o provedor de e-mail aceitou o envio; não garante que o aluno abriu ou que não caiu no spam. &quot;Aviso no app lido&quot; vale para o aviso que sai junto no sino do aluno (quando ele abre o app); não indica que o e-mail foi aberto. &quot;Aviso no portal&quot; são avisos antigos, de antes do registro de e-mails existir: normalmente tiveram um e-mail espelho, sem garantia.</p>
           </section>
 
           <section className="rounded-3xl border border-gray-800 bg-gray-800/40 ring-1 ring-white/5 p-5">
@@ -154,6 +166,7 @@ export default function EmailsAba({ alunoId }: { alunoId: string }) {
               </div>
               <button onClick={() => setAberto(null)} className="p-2 text-gray-400 hover:text-white" aria-label="Fechar"><X className="w-5 h-5" /></button>
             </div>
+            {aberto.lida !== null && aberto.status !== "falhou" && <p className="text-xs"><Leitura i={aberto} /></p>}
             {aberto.status === "falhou" && <p role="alert" className="text-sm text-red-300">Falhou: {emailFailureText({ reason: (aberto.fail_reason as never) ?? "api", detail: aberto.fail_detail ?? undefined })}</p>}
             {aberto.status === "aviso" && <p className="text-xs text-amber-300">Aviso antigo do portal: o e-mail espelho provavelmente foi enviado com este texto, mas o envio não foi registrado.</p>}
             <CartaoEmail titulo={aberto.title} texto={aberto.message} botao={aberto.button_label} url={aberto.button_url} />
