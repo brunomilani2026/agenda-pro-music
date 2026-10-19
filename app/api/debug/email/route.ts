@@ -51,8 +51,7 @@ export async function GET(request: NextRequest) {
   if (request.nextUrl.searchParams.get('via') === 'brevo') {
     const direto = await EmailService.sendViaBrevo({
       toEmail: to, toName: 'Diagnóstico', title: 'Teste do Brevo — Agenda Pro Music',
-      message: 'Se você recebeu este e-mail, o envio pelo Brevo está funcionando.
-Link de exemplo: https://www.agendapromusic.com.br',
+      message: 'Se você recebeu este e-mail, o envio pelo Brevo está funcionando.\nLink de exemplo: https://www.agendapromusic.com.br',
       buttonLabel: 'Acessar painel', buttonUrl: 'https://www.agendapromusic.com.br/login',
     });
     return NextResponse.json({ envPresence, brevoResult: direto });
