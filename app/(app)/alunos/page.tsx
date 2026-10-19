@@ -12,6 +12,7 @@ import { emailFailureText } from "@/lib/email-failure";
 import NotificationComposer from "@/components/NotificationComposer";
 import PhoneInput from "@/components/ui/PhoneInput";
 import { useSortableRows, SortableTh } from "@/lib/sortable-rows";
+import { filtrarAlunos, FILTROS_VAZIOS, haFiltroAtivo, type FiltrosAlunos } from "@/lib/filtro-alunos";
 
 // Ordem de urgência da coluna Status: quem precisa de atenção primeiro.
 const STATUS_PRIORITY: Record<string, number> = { bloqueado: 0, inativo: 1, ativo: 2 };
@@ -21,7 +22,7 @@ const NO_EXPIRATION = '9999-12-31';
 
 export default function AlunosPage() {
   const router = useRouter();
-  const { students, setStudents, reloadLoadedLessons, instruments, teacherProfile, refreshStudents } = useAppContext();
+  const { students, setStudents, reloadLoadedLessons, instruments, teacherProfile, refreshStudents, payments } = useAppContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Student>>({});
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -74,6 +75,20 @@ export default function AlunosPage() {
     lessonPrice: (s: Student) => Number(s.lessonPrice) || 0,
     status: (s: Student) => STATUS_PRIORITY[s.status] ?? 99,
   });
+
+  // Filtros da lista (nome, status, plano, vencimento, financeiro, instrumento).
+  const [filtros, setFiltros] = useState<FiltrosAlunos>(FILTROS_VAZIOS);
+  const setF = <K extends keyof FiltrosAlunos>(k: K, v: FiltrosAlunos[K]) => setFiltros(prev => ({ ...prev, [k]: v }));
+  const visibleStudents = useMemo(
+    () => filtrarAlunos(sortedStudents, payments.map(p => ({ studentName: p.studentName, date: p.date, status: p.status })), filtros, getLocalISODate()),
+    [sortedStudents, payments, filtros]
+  );
+  const instrumentosDosAlunos = useMemo(
+    () => Array.from(new Set(students.map(s => (s.instrument || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [students]
+  );
+  const filtroAtivo = haFiltroAtivo(filtros);
+  const campoCls = "w-full rounded-xl bg-gray-900/60 border border-gray-700 px-3 py-2.5 text-xs font-bold text-white focus:border-amber-500 outline-none";
 
   const handleSendNotification = async (title: string, message: string, sendEmail: boolean) => {
     if (notifyTarget?.student) {
@@ -296,6 +311,59 @@ export default function AlunosPage() {
         </div>
       )}
 
+      {/* Filtros */}
+      {students.length > 0 && (
+        <div className="shrink-0 rounded-2xl border border-gray-800 bg-gray-800/40 p-3 sm:p-4 space-y-3" role="search" aria-label="Filtrar alunos">
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
+            <input
+              type="search"
+              value={filtros.busca}
+              onChange={e => setF('busca', e.target.value)}
+              placeholder="Buscar nome, e-mail ou telefone"
+              aria-label="Buscar aluno"
+              className={`${campoCls} col-span-2 lg:col-span-2 placeholder:text-gray-500 placeholder:font-medium`}
+            />
+            <select value={filtros.status} onChange={e => setF('status', e.target.value as FiltrosAlunos['status'])} aria-label="Status" className={campoCls}>
+              <option value="">Status: todos</option>
+              <option value="ativo">Ativo</option>
+              <option value="bloqueado">Bloqueado</option>
+              <option value="inativo">Inativo</option>
+            </select>
+            <select value={filtros.plano} onChange={e => setF('plano', e.target.value as FiltrosAlunos['plano'])} aria-label="Plano" className={campoCls}>
+              <option value="">Plano: todos</option>
+              <option value="mensal">Mensal</option>
+              <option value="trimestral">Trimestral</option>
+              <option value="semestral">Semestral</option>
+              <option value="avulsa">Aula avulsa</option>
+              <option value="sem">Sem plano</option>
+            </select>
+            <select value={filtros.vencimento} onChange={e => setF('vencimento', e.target.value as FiltrosAlunos['vencimento'])} aria-label="Vencimento do plano" className={campoCls}>
+              <option value="">Vencimento: todos</option>
+              <option value="vencido">Já venceu</option>
+              <option value="7">Vence em 7 dias</option>
+              <option value="30">Vence em 30 dias</option>
+              <option value="sem">Sem vencimento</option>
+            </select>
+            <select value={filtros.financeiro} onChange={e => setF('financeiro', e.target.value as FiltrosAlunos['financeiro'])} aria-label="Financeiro" className={campoCls}>
+              <option value="">Financeiro: todos</option>
+              <option value="atrasado">Com fatura atrasada</option>
+              <option value="aberto">Fatura a vencer</option>
+              <option value="emdia">Em dia</option>
+            </select>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <select value={filtros.instrumento} onChange={e => setF('instrumento', e.target.value)} aria-label="Instrumento" className={`${campoCls} !w-auto min-w-[180px]`}>
+              <option value="">Instrumento: todos</option>
+              {instrumentosDosAlunos.map(i => <option key={i} value={i}>{i}</option>)}
+            </select>
+            <p className="text-xs font-bold text-gray-400" aria-live="polite">{visibleStudents.length} de {students.length} aluno{students.length === 1 ? '' : 's'}</p>
+            {filtroAtivo && (
+              <button type="button" onClick={() => setFiltros(FILTROS_VAZIOS)} className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Limpar filtros</button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Lista de Alunos em Cards — Mobile / Tablet */}
       <div className="lg:hidden flex-1 min-h-0 overflow-y-auto -mx-1 px-1 space-y-3 scrollbar-thin scrollbar-thumb-gray-700">
         {students.length === 0 ? (
@@ -304,8 +372,10 @@ export default function AlunosPage() {
             <p className="text-lg font-bold text-gray-400">Nenhum aluno em sua base sonora</p>
             <p className="text-sm text-gray-500">Cadastre alunos para começar a gerenciar sua agenda.</p>
           </div>
+        ) : visibleStudents.length === 0 ? (
+          <p className="py-16 text-center text-sm font-bold text-gray-500">Nenhum aluno encontrado com esses filtros.</p>
         ) : (
-          sortedStudents.map((student) => {
+          visibleStudents.map((student) => {
             // Comparação por string de data local — new Date('YYYY-MM-DD') vira meia-noite
             // UTC, que em UTC-3 já é a noite anterior: marcava expirado 3h cedo demais.
             const isFinished = student.expirationdate ? student.expirationdate < getLocalISODate() : false;
@@ -449,7 +519,10 @@ export default function AlunosPage() {
                   </td>
                 </tr>
               )}
-              {sortedStudents.map((student) => {
+              {students.length > 0 && visibleStudents.length === 0 && (
+                <tr><td colSpan={5} className="px-8 py-16 text-center text-sm font-bold text-gray-500">Nenhum aluno encontrado com esses filtros.</td></tr>
+              )}
+              {visibleStudents.map((student) => {
                 // Comparação por string de data local — new Date('YYYY-MM-DD') vira meia-noite
                 // UTC, que em UTC-3 já é a noite anterior: marcava expirado 3h cedo demais.
                 const isFinished = student.expirationdate ? student.expirationdate < getLocalISODate() : false;
