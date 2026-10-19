@@ -88,7 +88,7 @@ export default function AlunosPage() {
     [students]
   );
   const filtroAtivo = haFiltroAtivo(filtros);
-  const campoCls = "w-full rounded-xl bg-gray-900/60 border border-gray-700 px-3 py-2.5 text-xs font-bold text-white focus:border-amber-500 outline-none";
+  const campoCls = "w-full rounded-xl bg-gray-900/60 border border-gray-700 px-3 py-2 text-xs font-bold text-white focus:border-amber-500 outline-none";
 
   const handleSendNotification = async (title: string, message: string, sendEmail: boolean) => {
     if (notifyTarget?.student) {
@@ -270,19 +270,19 @@ export default function AlunosPage() {
     <div className="flex flex-col w-full h-full bg-gray-900 p-4 md:p-8 rounded-tl-[2rem] animate-fade-in gap-8">
 
       {/* Cabeçalho */}
-      <div className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter italic uppercase italic">
+          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tighter italic uppercase italic">
             Meus <span className="text-amber-500">Alunos</span>
           </h1>
-          <p className="text-gray-500 text-sm mt-1 font-medium tracking-wide">Gerencie sua base de talentos e pacotes de aulas.</p>
+          <p className="text-gray-500 text-xs mt-0.5 font-medium tracking-wide">Gerencie sua base de talentos e pacotes de aulas.</p>
         </div>
         
         <div className="flex items-center gap-3">
           <button
             onClick={() => setNotifyTarget({})}
             disabled={activeStudentsCount === 0}
-            className="group bg-gray-800 hover:bg-gray-700 text-white font-black py-4 px-6 rounded-2xl border border-gray-700 transition-all flex items-center justify-center gap-2.5 uppercase tracking-widest text-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="group bg-gray-800 hover:bg-gray-700 text-white font-black py-2.5 px-5 rounded-2xl border border-gray-700 transition-all flex items-center justify-center gap-2.5 uppercase tracking-widest text-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
             title="Enviar um aviso para todos os alunos ativos"
           >
             <Megaphone className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform" />
@@ -290,7 +290,7 @@ export default function AlunosPage() {
           </button>
           <button
             onClick={openNewModal}
-            className="group bg-amber-500 hover:bg-amber-400 text-gray-900 font-black py-4 px-8 rounded-2xl shadow-xl shadow-amber-500/20 hover:shadow-amber-500/40 transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs active:scale-95"
+            className="group bg-amber-500 hover:bg-amber-400 text-gray-900 font-black py-2.5 px-6 rounded-2xl shadow-xl shadow-amber-500/20 hover:shadow-amber-500/40 transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs active:scale-95"
           >
             <UserPlus className="w-5 h-5 group-hover:scale-110 transition-transform" />
             Adicionar Aluno
@@ -313,8 +313,8 @@ export default function AlunosPage() {
 
       {/* Filtros */}
       {students.length > 0 && (
-        <div className="shrink-0 rounded-2xl border border-gray-800 bg-gray-800/40 p-3 sm:p-4 space-y-3" role="search" aria-label="Filtrar alunos">
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
+        <div className="shrink-0 rounded-2xl border border-gray-800 bg-gray-800/40 p-2.5 sm:p-3 space-y-1.5" role="search" aria-label="Filtrar alunos">
+          <div className="grid grid-cols-2 lg:grid-cols-7 gap-2">
             <input
               type="search"
               value={filtros.busca}
@@ -350,13 +350,13 @@ export default function AlunosPage() {
               <option value="aberto">Fatura a vencer</option>
               <option value="emdia">Em dia</option>
             </select>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <select value={filtros.instrumento} onChange={e => setF('instrumento', e.target.value)} aria-label="Instrumento" className={`${campoCls} !w-auto min-w-[180px]`}>
+            <select value={filtros.instrumento} onChange={e => setF('instrumento', e.target.value)} aria-label="Instrumento" className={campoCls}>
               <option value="">Instrumento: todos</option>
               {instrumentosDosAlunos.map(i => <option key={i} value={i}>{i}</option>)}
             </select>
-            <p className="text-xs font-bold text-gray-400" aria-live="polite">{visibleStudents.length} de {students.length} aluno{students.length === 1 ? '' : 's'}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-[11px] font-bold text-gray-400" aria-live="polite">{visibleStudents.length} de {students.length} aluno{students.length === 1 ? '' : 's'}</p>
             {filtroAtivo && (
               <button type="button" onClick={() => setFiltros(FILTROS_VAZIOS)} className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Limpar filtros</button>
             )}
@@ -498,13 +498,13 @@ export default function AlunosPage() {
       <div className="hidden lg:block flex-1 min-h-0 bg-gray-800/40 rounded-[2rem] border border-gray-800 shadow-2xl overflow-hidden ring-1 ring-white/5">
         <div className="h-full overflow-auto scrollbar-thin scrollbar-thumb-gray-700">
           <table className="w-full text-left border-collapse">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-gray-800">
               <tr className="bg-gray-800/60 border-b border-gray-700">
-                <SortableTh columnKey="name" sort={sort} onSort={toggle} className="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Aluno</SortableTh>
-                <SortableTh columnKey="expirationdate" sort={sort} onSort={toggle} className="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-center">Controle de Pacotes</SortableTh>
-                <SortableTh columnKey="lessonPrice" sort={sort} onSort={toggle} className="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-center">Financeiro</SortableTh>
-                <SortableTh columnKey="status" sort={sort} onSort={toggle} className="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-center">Status</SortableTh>
-                <th className="px-8 py-6 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-right">Painel</th>
+                <SortableTh columnKey="name" sort={sort} onSort={toggle} className="px-8 py-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Aluno</SortableTh>
+                <SortableTh columnKey="expirationdate" sort={sort} onSort={toggle} className="px-8 py-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-center">Controle de Pacotes</SortableTh>
+                <SortableTh columnKey="lessonPrice" sort={sort} onSort={toggle} className="px-8 py-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-center">Financeiro</SortableTh>
+                <SortableTh columnKey="status" sort={sort} onSort={toggle} className="px-8 py-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-center">Status</SortableTh>
+                <th className="px-8 py-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-right">Painel</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/50">
@@ -529,7 +529,7 @@ export default function AlunosPage() {
                 
                 return (
                   <tr key={student.id} className="hover:bg-amber-500/[0.02] transition-colors group">
-                    <td className="px-8 py-6">
+                    <td className="px-8 py-3">
                       <button
                         type="button"
                         onClick={() => router.push(`/alunos/${student.id}`)}
@@ -545,7 +545,7 @@ export default function AlunosPage() {
                         </div>
                       </button>
                     </td>
-                    <td className="px-8 py-6 text-center">
+                    <td className="px-8 py-3 text-center">
                       {student.packagetype && student.packagetype !== 'avulsa' ? (
                         <div className="flex flex-col items-center gap-2">
                           <div className="flex items-center gap-2">
@@ -567,7 +567,7 @@ export default function AlunosPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-8 py-6 text-center">
+                    <td className="px-8 py-3 text-center">
                        <div className="inline-flex flex-col items-center">
                           <span className="text-lg font-black text-emerald-400 leading-none">R$ {student.lessonPrice}</span>
                           <span className="text-[9px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">{student.paymentMethod}</span>
@@ -578,7 +578,7 @@ export default function AlunosPage() {
                           )}
                        </div>
                     </td>
-                    <td className="px-8 py-6 text-center">
+                    <td className="px-8 py-3 text-center">
                       <div className="flex justify-center">
                         {student.status === "ativo" ? (
                           <div className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20">
@@ -632,7 +632,7 @@ export default function AlunosPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-8 py-6 text-right">
+                    <td className="px-8 py-3 text-right">
                       <div className="flex items-center justify-end gap-2 px-2 transition-all">
                         <button
                           onClick={() => setNotifyTarget({ student })}
