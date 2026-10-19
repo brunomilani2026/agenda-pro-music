@@ -38,6 +38,8 @@ export async function GET(request: NextRequest) {
     EMAILJS_PRIVATE_KEY: !!process.env.EMAILJS_PRIVATE_KEY,
     EMAILJS_TEMPLATE_NOTIFICATION: !!process.env.EMAILJS_TEMPLATE_NOTIFICATION,
     EMAILJS_TEMPLATE_STUDENT_CONFIRM: !!process.env.EMAILJS_TEMPLATE_STUDENT_CONFIRM,
+    BREVO_API_KEY: !!process.env.BREVO_API_KEY,
+    enviando_por: process.env.BREVO_API_KEY && process.env.BREVO_DESLIGADO !== '1' ? 'Brevo' : 'EmailJS',
   };
 
   const to = request.nextUrl.searchParams.get('to');

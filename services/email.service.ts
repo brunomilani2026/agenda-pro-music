@@ -1,4 +1,5 @@
 import type { EmailResult } from '@/lib/email-failure';
+import { montarCorpoBrevo, REMETENTE_PADRAO } from '@/lib/email-brevo';
 
 export class EmailService {
   /**
@@ -76,6 +77,36 @@ export class EmailService {
   }
 
   /**
+   * Envio pela API transacional do Brevo (POST /v3/smtp/email). O modelo do e-mail vive em
+   * lib/email-brevo.ts. Falha de detalhe começa com "Brevo" para emailFailureText reconhecer.
+   */
+  static async sendViaBrevo(d: { toEmail: string; toName?: string; title: string; message: string; buttonLabel: string; buttonUrl: string }): Promise<EmailResult> {
+    const key = process.env.BREVO_API_KEY;
+    if (!key) return { ok: false, reason: 'config' };
+    const remetente = {
+      name: REMETENTE_PADRAO.name,
+      email: (process.env.BREVO_SENDER_EMAIL || REMETENTE_PADRAO.email).trim(),
+    };
+    try {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'api-key': key, 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify(montarCorpoBrevo(d, remetente)),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Falha ao enviar e-mail via Brevo [${response.status}]: ${errorText.slice(0, 300)}`);
+        return { ok: false, reason: 'api', detail: `Brevo HTTP ${response.status}: ${errorText.slice(0, 180)}` };
+      }
+      console.log('✅ E-mail enviado com sucesso via Brevo!', { to: d.toEmail });
+      return { ok: true };
+    } catch (err) {
+      console.error('❌ Erro na requisição para o Brevo:', err);
+      return { ok: false, reason: 'rede', detail: `Brevo: ${(err instanceof Error ? err.message : String(err)).slice(0, 170)}` };
+    }
+  }
+
+  /**
    * Envia uma notificação genérica usando o template reaproveitável do EmailJS.
    * Use para qualquer aviso transacional (pagamentos, aulas, boas-vindas, etc.).
    *
@@ -99,14 +130,27 @@ export class EmailService {
     /** Link do botão. Padrão: /login. */
     buttonUrl?: string;
   }): Promise<EmailResult> {
+    if (!params.toEmail) return { ok: false, reason: 'sem-destinatario' };
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.agendapromusic.com.br';
+
+    // Brevo primeiro: sem o limite de 200 e-mails/mês do EmailJS. Sem BREVO_API_KEY (ou
+    // BREVO_DESLIGADO=1, para voltar atrás rápido) segue o caminho antigo, pelo EmailJS.
+    if (process.env.BREVO_API_KEY && process.env.BREVO_DESLIGADO !== '1') {
+      return this.sendViaBrevo({
+        toEmail: params.toEmail,
+        toName: params.toName,
+        title: params.title,
+        message: params.message,
+        buttonLabel: params.buttonLabel || 'Acessar painel',
+        buttonUrl: params.buttonUrl || `${appUrl}/login`,
+      });
+    }
+
     const templateId = process.env.EMAILJS_TEMPLATE_NOTIFICATION;
     if (!templateId) {
       console.warn('⚠️ EMAILJS_TEMPLATE_NOTIFICATION ausente. Notificação não enviada.');
       return { ok: false, reason: 'config' };
     }
-    if (!params.toEmail) return { ok: false, reason: 'sem-destinatario' };
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.agendapromusic.com.br';
 
     return this.sendEmail(templateId, {
       to_email: params.toEmail,

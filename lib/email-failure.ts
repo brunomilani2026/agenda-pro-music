@@ -42,9 +42,16 @@ export function emailFailureText(fail?: EmailFailure): string {
     case 'lookup':
       return 'não foi possível consultar o cadastro do destinatário.';
     case 'rede':
+      if ((fail.detail || '').startsWith('Brevo')) return `falha de rede ao contatar o Brevo (${fail.detail}).`;
       return `falha de rede ao contatar o EmailJS${fail.detail ? ` (${fail.detail})` : ''}.`;
     case 'api': {
       const d = fail.detail || '';
+      if (d.startsWith('Brevo')) {
+        if (/HTTP 401|unauthorized|key not found/i.test(d)) return 'o Brevo recusou a chave — confira BREVO_API_KEY na Vercel (deve ser uma chave da aba "Chaves de API").';
+        if (/sender|not valid|not verified|domain/i.test(d)) return 'o Brevo não aceitou o remetente — confira em Remetentes se notificacoes@agendapromusic.com.br está verificado.';
+        if (/quota|limit|credits|too many/i.test(d)) return 'o limite de envios do plano do Brevo foi atingido.';
+        return `o Brevo recusou o envio (${d}).`;
+      }
       if (/non-?browser/i.test(d))
         return 'o EmailJS está bloqueando envios feitos pelo servidor — habilite "Allow EmailJS API for non-browser applications" em Account → Security no painel do EmailJS.';
       if (/strict mode|private key/i.test(d))
