@@ -47,6 +47,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ envPresence, note: 'Passe ?to=email para disparar um envio de teste.' });
   }
 
+  // ?via=brevo: testa SÓ o Brevo (sem a volta automática para o EmailJS), para ver o erro real.
+  if (request.nextUrl.searchParams.get('via') === 'brevo') {
+    const direto = await EmailService.sendViaBrevo({
+      toEmail: to, toName: 'Diagnóstico', title: 'Teste do Brevo — Agenda Pro Music',
+      message: 'Se você recebeu este e-mail, o envio pelo Brevo está funcionando.
+Link de exemplo: https://www.agendapromusic.com.br',
+      buttonLabel: 'Acessar painel', buttonUrl: 'https://www.agendapromusic.com.br/login',
+    });
+    return NextResponse.json({ envPresence, brevoResult: direto });
+  }
+
   const result = await EmailService.sendNotification({
     toEmail: to,
     toName: 'Diagnóstico',

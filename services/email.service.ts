@@ -81,7 +81,7 @@ export class EmailService {
    * lib/email-brevo.ts. Falha de detalhe começa com "Brevo" para emailFailureText reconhecer.
    */
   static async sendViaBrevo(d: { toEmail: string; toName?: string; title: string; message: string; buttonLabel: string; buttonUrl: string }): Promise<EmailResult> {
-    const key = process.env.BREVO_API_KEY;
+    const key = (process.env.BREVO_API_KEY || "").trim().replace(/^["']|["']$/g, "");
     if (!key) return { ok: false, reason: 'config' };
     const remetente = {
       name: REMETENTE_PADRAO.name,
@@ -136,7 +136,7 @@ export class EmailService {
     // Brevo primeiro: sem o limite de 200 e-mails/mês do EmailJS. Sem BREVO_API_KEY (ou
     // BREVO_DESLIGADO=1, para voltar atrás rápido) segue o caminho antigo, pelo EmailJS.
     if (process.env.BREVO_API_KEY && process.env.BREVO_DESLIGADO !== '1') {
-      return this.sendViaBrevo({
+      const viaBrevo = await this.sendViaBrevo({
         toEmail: params.toEmail,
         toName: params.toName,
         title: params.title,
@@ -144,6 +144,10 @@ export class EmailService {
         buttonLabel: params.buttonLabel || 'Acessar painel',
         buttonUrl: params.buttonUrl || `${appUrl}/login`,
       });
+      // O Brevo respondeu recusando (chave errada, remetente não verificado, cota): nada foi enviado, então
+      // tenta o EmailJS em vez de o aluno ficar sem e-mail. Falha de rede não cai aqui (o envio pode ter saído).
+      if (viaBrevo.ok || viaBrevo.reason !== 'api') return viaBrevo;
+      console.warn('⚠️ Brevo recusou o envio; tentando pelo EmailJS.', viaBrevo.detail);
     }
 
     const templateId = process.env.EMAILJS_TEMPLATE_NOTIFICATION;
