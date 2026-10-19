@@ -11,6 +11,15 @@ import { fetchAgendaLessons, createAgendaLesson, updateAgendaLesson, deleteAgend
 import type { DeleteLessonScope } from "./actions";
 import { CheckCircle, AlertCircle, RefreshCw, Lock, Trash2, CalendarOff, AlertTriangle, UserCheck } from "lucide-react";
 import { isOverdueCancelNote, isOverduePayment, normalizeStudentName } from "@/lib/lesson-cancel-reasons";
+import { createPortal } from "react-dom";
+import { montarResumoAula, type TomLinha } from "@/lib/resumo-aula";
+
+const COR_TOM: Record<TomLinha, string> = {
+  normal: "text-gray-300",
+  ok: "text-emerald-400",
+  aviso: "text-amber-400",
+  perigo: "text-red-400 font-semibold",
+};
 
 const HOURS_LIST = Array.from({ length: 31 }, (_, i) => {
   const h = Math.floor(i / 2) + 8;
@@ -135,6 +144,8 @@ export default function AgendaPage() {
     isRangeLoaded, ensureRangeLoaded, reloadLoadedLessons, refreshPayments,
   } = useAppContext();
   const [recurrenceWeeks, setRecurrenceWeeks] = useState(1);
+  // Resumo ao passar o mouse sobre uma aula (portal fixo, sem ser cortado pelo scroll da grade).
+  const [hoverAula, setHoverAula] = useState<{ lesson: Lesson; rect: DOMRect } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -1152,10 +1163,11 @@ export default function AgendaPage() {
                         return (
                           <div
                             key={lesson.id}
-                            onClick={() => openEditLessonModal(lesson)}
+                            onClick={() => { setHoverAula(null); openEditLessonModal(lesson); }}
+                            onMouseEnter={(e) => setHoverAula({ lesson, rect: e.currentTarget.getBoundingClientRect() })}
+                            onMouseLeave={() => setHoverAula(null)}
                             className={`lesson-card absolute left-1 right-1 z-10 rounded-md text-xs p-1.5 overflow-hidden shadow-sm transition-all hover:scale-[1.02] cursor-pointer ${getStatusColor(lesson.status)}`}
                             style={{ top: `${top}px`, height: `${height - 2}px` }}
-                            title={`${lesson.studentName} - ${lesson.instrument} (${lesson.startTime} - ${lesson.endTime})`}
                           >
                             <div className="font-semibold truncate">{lesson.studentName}</div>
                             <div className="text-[10px] opacity-80 flex items-center justify-between">
@@ -1170,6 +1182,38 @@ export default function AgendaPage() {
                           </div>
                         );
                       })}
+
+                      {hoverAula && hoverAula.lesson.date === dateStr && typeof document !== "undefined" && (() => {
+                        const l = hoverAula.lesson;
+                        const nomeNorm = normalizeStudentName(l.studentName);
+                        const aluno = mockStudents.find(s => normalizeStudentName(s.name) === nomeNorm) ?? null;
+                        const linhas = montarResumoAula({
+                          aula: l,
+                          aulas: allLessons,
+                          aluno,
+                          pagamentos: payments.map(p => ({ studentName: p.studentName, amount: p.amount, date: p.date, status: p.status })),
+                          hojeIso: getLocalISODate(new Date()),
+                        });
+                        const r = hoverAula.rect;
+                        const aDireita = r.right + 8 + 280 <= window.innerWidth;
+                        return createPortal(
+                          <div
+                            className="pointer-events-none fixed z-[200] w-[270px] rounded-xl border border-gray-600 bg-gray-900/98 p-3 shadow-2xl text-xs"
+                            style={{
+                              top: Math.max(8, Math.min(r.top, window.innerHeight - 190)),
+                              left: aDireita ? r.right + 8 : r.left - 8,
+                              transform: aDireita ? undefined : "translateX(-100%)",
+                            }}
+                          >
+                            <p className="text-sm font-bold text-white">{l.studentName.trim()}</p>
+                            <p className="text-[11px] text-gray-400 capitalize mb-2">{l.instrument} · {l.startTime} – {l.endTime}</p>
+                            <ul className="space-y-1">
+                              {linhas.map((x, i) => <li key={i} className={COR_TOM[x.tom]}>{x.texto}</li>)}
+                            </ul>
+                          </div>,
+                          document.body
+                        );
+                      })()}
 
                       {blockedSlots.filter(b => b.date === dateStr).map(block => {
                         const geo = getBlockGeometry(block.starttime, block.endtime);
