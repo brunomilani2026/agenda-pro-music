@@ -14,7 +14,7 @@ Origem: documento do Bruno (09/10/2026). Regra dele: auditar, propor, **aguardar
 - Aula liga ao aluno por `student_fk` (nova) ou só por `studentname` (antigas): sempre casar pelos dois.
 - `lesson.obs` é ENVIADO POR E-MAIL ao aluno nos lembretes: **nunca** usar para anotação privada.
 - Motivo de cancelamento hoje só existe para inadimplência (texto em `obs`).
-- RN03: crédito de reposição só no 1º cancelamento da vida do aluno.
+- RN03 (alterada em 20/10/2026): até 2 créditos de reposição por mês por aluno, cada um válido por 30 dias (lib/regra-reposicao.ts). Antes: só 1 na vida.
 - RLS por professor (`idusers_fk = auth.uid()`); aluno via `my_student_ids()`. Não existe "organização": tabelas novas seguem o mesmo padrão (dono = professor) e deixam espaço para organização no futuro.
 - Fotos hoje no Firebase (regra de Storage só `avatars/`); materiais novos irão para Supabase Storage.
 

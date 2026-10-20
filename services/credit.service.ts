@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { Credit } from '@/types/database.types';
 import { getLocalISODate } from '@/lib/utils';
+import { podeGerarReposicao } from '@/lib/regra-reposicao';
 
 export class CreditService {
   /**
@@ -84,7 +85,29 @@ export class CreditService {
     return (data?.length || 0) > 0;
   }
 
-  // RN03: o crédito de reposição é concedido apenas no primeiro cancelamento do
+  /**
+   * Regra atual (lib/regra-reposicao.ts): até 2 créditos de reposição por mês, por aluno.
+   * Em erro de consulta devolve false: deixar de conceder é reparável pelo professor;
+   * conceder além do limite não é.
+   */
+  static async canGrantCancellationCredit(idstudent_fk: string): Promise<boolean> {
+    const supabase = await createClient();
+    // Folga de 2 dias antes do dia 1 cobre o fuso; o corte exato do mês é feito em reposicoesNoMes.
+    const desde = new Date(Date.now() - 33 * 86400000).toISOString();
+    const { data, error } = await supabase
+      .from('credit')
+      .select('origin_lesson_fk, created_at')
+      .eq('idstudent_fk', idstudent_fk)
+      .not('origin_lesson_fk', 'is', null)
+      .gte('created_at', desde);
+    if (error) {
+      console.error('Error checking monthly cancellation credits:', error.message);
+      return false;
+    }
+    return podeGerarReposicao(data ?? []);
+  }
+
+  // (Regra antiga, só histórico) RN03: o crédito de reposição era concedido apenas no primeiro cancelamento do
   // aluno (vitalício). Considera qualquer crédito com origin_lesson_fk (usado,
   // expirado ou ativo); créditos de pacote comprado têm origem nula e não contam,
   // e créditos revogados por engano são apagados, então também não contam.

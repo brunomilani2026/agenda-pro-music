@@ -1,0 +1,12 @@
+import { podeGerarReposicao, reposicoesNoMes } from '../lib/regra-reposicao';
+let ok = 0, tot = 0; const t = (n: string, c: boolean) => { tot++; if (c) ok++; else console.log('FALHOU:', n); };
+const agora = new Date('2026-10-20T15:00:00Z');
+const c = (origem: string | null, iso: string) => ({ origin_lesson_fk: origem, created_at: iso });
+t('nenhum crédito: pode', podeGerarReposicao([], agora));
+t('1 no mês: pode (é o 2º)', podeGerarReposicao([c('a', '2026-10-14T16:04:20Z')], agora));
+t('2 no mês: não pode', !podeGerarReposicao([c('a', '2026-10-14T16:04:20Z'), c('b', '2026-10-19T19:10:00Z')], agora));
+t('crédito de pacote (sem origem) não conta', podeGerarReposicao([c(null, '2026-10-02T12:00:00Z'), c(null, '2026-10-03T12:00:00Z'), c('a', '2026-10-14T16:00:00Z')], agora));
+t('mês anterior não conta', podeGerarReposicao([c('a', '2026-09-28T12:00:00Z'), c('b', '2026-09-30T12:00:00Z')], agora));
+t('virada de mês em São Paulo: 01/11 00:30 UTC ainda é outubro', reposicoesNoMes([c('a', '2026-11-01T00:30:00Z')], new Date('2026-10-31T12:00:00Z')) === 1);
+t('crédito já usado ou vencido continua contando', !podeGerarReposicao([c('a', '2026-10-01T12:00:00Z'), c('b', '2026-10-05T12:00:00Z')], agora));
+console.log(`${ok} de ${tot}`);

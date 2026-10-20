@@ -21,6 +21,7 @@ import { Lesson as DBLesson, Student } from '@/types/database.types';
 import { isValidCPF, isValidEmail, isValidPhone, unmask, normalizePhoneForStorage, getLocalISODate, normalizePaymentMethod, nowInSaoPaulo } from '@/lib/utils';
 import { emailFailureText } from '@/lib/email-failure';
 import { afterResponse } from '@/lib/after-response';
+import { VALIDADE_REPOSICAO_DIAS } from '@/lib/regra-reposicao';
 import { mapDbLessonToUI } from '@/lib/lesson-mapper';
 import { buildAwaitingStudentRescheduleNote, isAwaitingStudentReschedule } from '@/lib/lesson-reschedule-release';
 import type { InitialAppData } from '../initial-data';
@@ -796,7 +797,7 @@ export async function updateAgendaLesson(
     const result = await LessonService.updateLesson(id, dbPayload);
 
     // RN03: Se a aula passou de qualquer status para 'cancelada', gerar crédito
-    // de reposição — mas apenas no primeiro cancelamento do aluno (vitalício).
+    // de reposição — até 2 por mês por aluno (lib/regra-reposicao.ts).
     if (result && uiLesson.status === 'cancelada' && currentLesson?.lessonstatus !== 'cancelada') {
       const { student, ambiguous } = await resolveLessonStudent(
         currentLesson,
@@ -810,16 +811,18 @@ export async function updateAgendaLesson(
           : `Aula cancelada, mas o aluno "${nome}" não foi encontrado no cadastro — nenhuma notificação foi enviada.`;
       }
       if (student) {
-        const alreadyUsedBenefit = await CreditService.hasEverReceivedCancellationCredit(student.idstudent);
+        // Até 2 reposições por mês (lib/regra-reposicao.ts). `alreadyUsedBenefit` = não gerou crédito.
+        let alreadyUsedBenefit = !(await CreditService.canGrantCancellationCredit(student.idstudent));
         if (!alreadyUsedBenefit) {
           const expiresAt = new Date();
-          expiresAt.setDate(expiresAt.getDate() + 30);
-          await CreditService.createCredit({
+          expiresAt.setDate(expiresAt.getDate() + VALIDADE_REPOSICAO_DIAS);
+          const created = await CreditService.createCredit({
             idstudent_fk: student.idstudent,
             idusers_fk: dbUser.idusers,
             origin_lesson_fk: id,
             expires_at: getLocalISODate(expiresAt),
           });
+          if (!created) alreadyUsedBenefit = true; // não gravou: não diz ao aluno que ganhou
         }
         // Identifica QUAL aula foi cancelada (instrumento, data e hora) — a
         // mensagem genérica "Sua aula foi cancelada" não dizia nada a quem tem
@@ -1798,16 +1801,16 @@ export async function approveRequest(requestId: string): Promise<{ success: bool
         await LessonService.updateLesson(request.original_lesson_fk, { lessonstatus: 'cancelada' as any });
       }
 
-      // RN03: Gerar crédito de reposição (30 dias) — só no primeiro cancelamento
-      // do aluno (vitalício). A partir do segundo, cancela mas não gera crédito.
+      // RN03: Gerar crédito de reposição (30 dias) — até 2 por mês por aluno;
+      // acima do limite do mês, cancela mas não gera crédito.
       // O índice único credit_one_cancellation_benefit é o backstop contra a
       // corrida de dois cancelamentos simultâneos: o segundo insert falha e
       // createCredit retorna null — tratamos como benefício já concedido.
-      const alreadyUsedBenefit = await CreditService.hasEverReceivedCancellationCredit(request.idstudent_fk);
+      const alreadyUsedBenefit = !(await CreditService.canGrantCancellationCredit(request.idstudent_fk));
       let creditGranted = false;
       if (!alreadyUsedBenefit) {
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
+        expiresAt.setDate(expiresAt.getDate() + VALIDADE_REPOSICAO_DIAS);
 
         const created = await CreditService.createCredit({
           idstudent_fk: request.idstudent_fk,

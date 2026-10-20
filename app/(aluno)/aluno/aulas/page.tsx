@@ -554,7 +554,7 @@ export default function AlunoAulasPage() {
 
               {modalType === 'cancel' && (
                 <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-xl border border-amber-200">
-                  ⚠ Cancelamentos exigem aviso prévio de 6 horas. Apenas o seu primeiro cancelamento gera um crédito de reposição (30 dias); os seguintes não geram crédito.
+                  ⚠ Cancelamentos exigem aviso prévio de 6 horas. Você tem direito a até 2 reposições por mês: cada cancelamento gera um crédito de reposição válido por 30 dias, até esse limite.
                 </p>
               )}
             </div>
