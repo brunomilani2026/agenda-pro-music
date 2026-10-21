@@ -18,6 +18,8 @@ export interface Student {
   name: string;
   phone: string;
   email: string;
+  /** E-mail do responsável (aluno menor): recebe cópia dos e-mails do sistema. */
+  guardianEmail?: string;
   instrument: string;
   lessonPrice: number;
   paymentMethod: PaymentMethod;

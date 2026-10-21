@@ -180,6 +180,30 @@ export async function emailStudent(
       buttonUrl,
     });
     await registrar(resultado);
+
+    // Aluno menor de idade: o responsável recebe uma cópia. A consulta é à parte para nunca atrapalhar o envio
+    // principal (se a coluna ainda não existir ou der erro, segue sem cópia).
+    try {
+      const { data: resp } = await supabase.from('student').select('guardian_email').eq('idstudent', idstudent_fk).maybeSingle();
+      const copia = (resp?.guardian_email as string | null | undefined)?.trim();
+      if (copia && copia.toLowerCase() !== student.email.trim().toLowerCase()) {
+        const primeiroNome = (student.name || '').trim().split(/\s+/)[0] || 'o aluno';
+        const r2 = await EmailService.sendNotification({
+          toEmail: copia,
+          toName: `responsável por ${primeiroNome}`,
+          title: content.title,
+          message: `Cópia do aviso enviado a ${primeiroNome}:\n\n${content.message}`,
+          buttonLabel: content.buttonLabel,
+          buttonUrl,
+        });
+        await registrarEmailAluno(supabase, {
+          idstudent_fk, idusers_fk: student.idusers_fk ?? null, to_email: copia,
+          tipo: classificarEmail(content.title, content.tipo), title: content.title, message: content.message,
+          button_label: content.buttonLabel ?? null, button_url: buttonUrl ?? null,
+          status: r2.ok ? 'enviado' : 'falhou', fail_reason: r2.ok ? null : r2.reason, fail_detail: r2.ok ? null : (r2.detail ?? null),
+        });
+      }
+    } catch (e) { console.error('Cópia ao responsável: erro:', e); }
     return resultado;
   } catch (err) {
     console.error('Falha ao enviar e-mail de notificação ao aluno:', err);

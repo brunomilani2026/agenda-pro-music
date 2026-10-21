@@ -73,6 +73,7 @@ export async function fetchAgendaStudents(): Promise<any[]> {
       name: s.name || '',
       phone: s.phone || '',
       email: s.email || '',
+      guardianEmail: (s as any).guardian_email || '',
       instrument: s.instrument || 'Outros',
       cpf: s.cpf || '',
       packagetype: s.packagetype || 'avulsa',
@@ -205,7 +206,10 @@ export async function updateAgendaStudent(
     if (studentData.email && !isValidEmail(studentData.email)) {
       throw new Error("E-mail inválido");
     }
-    
+    if (studentData.guardianEmail && !isValidEmail(String(studentData.guardianEmail).trim())) {
+      throw new Error("E-mail do responsável inválido");
+    }
+
     if (studentData.phone && !isValidPhone(studentData.phone)) {
       throw new Error("Telefone inválido");
     }
@@ -245,6 +249,12 @@ export async function updateAgendaStudent(
       name: studentData.name,
       phone: studentData.phone ? normalizePhoneForStorage(studentData.phone) : null,
       email: studentData.email || null,
+      // Só grava quando o campo veio no envio: a coluna nasce na etapa 14 do banco, e sem ela nada muda para os outros alunos.
+      // Vazio e sem valor anterior = não mexe (evita erro enquanto a coluna não existe).
+      ...(Object.prototype.hasOwnProperty.call(studentData, 'guardianEmail')
+        && (String(studentData.guardianEmail || '').trim() !== '' || !!(existing as any)?.guardian_email)
+        ? { guardian_email: String(studentData.guardianEmail || '').trim().toLowerCase() || null }
+        : {}),
       instrument: studentData.instrument || 'Outros',
       cpf: studentData.cpf ? unmask(studentData.cpf) : null,
       packagetype: studentData.packagetype || 'avulsa',

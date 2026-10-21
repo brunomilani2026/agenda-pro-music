@@ -788,6 +788,13 @@ export default function AlunosPage() {
                   <input type="email" value={formData.email || ""} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-gray-900/50 border border-gray-700/50 rounded-2xl p-4 text-white focus:bg-gray-900 focus:border-amber-500/50 outline-none transition-all font-bold" placeholder="Ex: aluno@email.com"/>
                 </div>
 
+                {/* E-mail do responsável (aluno menor de idade) */}
+                <div className="group">
+                  <label className="block text-[10px] font-black text-gray-500 mb-3 uppercase tracking-[0.2em] group-focus-within:text-amber-500 transition-colors">E-mail do responsável (opcional)</label>
+                  <input type="email" value={formData.guardianEmail || ""} onChange={e => setFormData({...formData, guardianEmail: e.target.value})} className="w-full bg-gray-900/50 border border-gray-700/50 rounded-2xl p-4 text-white focus:bg-gray-900 focus:border-amber-500/50 outline-none transition-all font-bold" placeholder="Ex: mae@email.com"/>
+                  <p className="mt-2 text-xs text-gray-500">Se preencher, os e-mails de aulas, pagamentos e avisos deste aluno também são enviados para este endereço.</p>
+                </div>
+
                 {/* CPF */}
                 <div className="group">
                   <label className="block text-[10px] font-black text-gray-500 mb-3 uppercase tracking-[0.2em] group-focus-within:text-amber-500 transition-colors">CPF</label>
