@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { fetchOpcoesNovaTarefa, criarTarefaEmLote, type AlunoParaTarefa } from "./lote-actions";
 import GravadorAudio from "@/components/GravadorAudio";
+import CampoLinks from "@/components/CampoLinks";
+import { juntarDescricao, normalizarLink } from "@/lib/tarefa-link";
 import { enviarAudioComoMaterial } from "@/lib/enviar-audio-material";
 import { anexarTexto } from "@/lib/gravacao";
 
@@ -17,6 +19,7 @@ export default function NovaTarefaLote({ onCriada, onFechar }: { onCriada: (msg:
   const [erro, setErro] = useState<string | null>(null);
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [links, setLinks] = useState<string[]>([""]);
   const [modo, setModo] = useState<"proxima" | "data" | "nenhum">("proxima");
   const [data, setData] = useState("");
   const [escolhidos, setEscolhidos] = useState<Set<string>>(new Set());
@@ -38,6 +41,12 @@ export default function NovaTarefaLote({ onCriada, onFechar }: { onCriada: (msg:
     e.preventDefault();
     setErro(null);
     if (escolhidos.size === 0) { setErro("Escolha pelo menos um aluno."); return; }
+    const linksOk: string[] = [];
+    for (const [i, l] of links.entries()) {
+      const n = normalizarLink(l);
+      if (!n.ok) { setErro(`O link ${i + 1} não parece um endereço válido. Cole o endereço completo, como https://youtu.be/…`); return; }
+      if (n.url) linksOk.push(n.url);
+    }
     setSalvando(true);
     let ids = [...materiais];
     if (audio) {
@@ -49,7 +58,7 @@ export default function NovaTarefaLote({ onCriada, onFechar }: { onCriada: (msg:
       }
       ids = [...ids, id];
     }
-    const r = await criarTarefaEmLote([...escolhidos], { title: titulo, description: descricao, modo, due_date: data }, ids);
+    const r = await criarTarefaEmLote([...escolhidos], { title: titulo, description: juntarDescricao(descricao, linksOk), modo, due_date: data }, ids);
     setSalvando(false);
     if (!r.ok) { setErro(r.error); return; }
     onCriada(`Tarefa criada para ${r.criadas} ${r.criadas === 1 ? "aluno" : "alunos"}.${r.semAula ? ` ${r.semAula} ${r.semAula === 1 ? "aluno não tem" : "alunos não têm"} aula agendada e ficou sem prazo.` : ""}`);
@@ -64,6 +73,8 @@ export default function NovaTarefaLote({ onCriada, onFechar }: { onCriada: (msg:
 
       <input className={`${campo} md:col-span-2`} placeholder="Título da tarefa (ex.: Gravar a batida de samba)" value={titulo} maxLength={160} onChange={e => setTitulo(e.target.value)} aria-label="Título da tarefa" required />
       <textarea className={`${campo} md:col-span-2`} rows={3} placeholder="Descrição: o que o aluno deve fazer" value={descricao} maxLength={5000} onChange={e => setDescricao(e.target.value)} aria-label="Descrição" />
+
+      <div className="md:col-span-2"><CampoLinks valor={links} onChange={setLinks} /></div>
 
       <div className="md:col-span-2">
         <GravadorAudio onAudio={a => { setAudio(a); setAudioId(null); }} onTranscricao={t => setDescricao(d => anexarTexto(d, t))} />

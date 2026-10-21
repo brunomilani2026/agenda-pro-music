@@ -10,6 +10,7 @@ import {
 import { enderecoMeuMaterial } from "../portal-actions";
 import { MAX_BYTES, formatarTamanho } from "@/lib/materiais";
 import { PRIORIDADE_STATUS, ROTULO_STATUS_TAREFA, type StatusTarefa } from "@/lib/tarefas";
+import DescricaoComLinks from "@/components/DescricaoComLinks";
 
 const fmtData = (iso?: string | null) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
 const COR: Record<StatusTarefa, string> = {
@@ -154,7 +155,7 @@ export default function MinhasTarefasPage() {
                 </div>
                 <span className={`shrink-0 inline-flex px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${COR[t.estado]}`}>{ROTULO_STATUS_TAREFA[t.estado]}</span>
               </div>
-              {t.description && <p className="text-sm text-gray-300 whitespace-pre-wrap break-words">{t.description}</p>}
+              <DescricaoComLinks descricao={t.description} />
               {t.materiais.length > 0 && (
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1.5">Material de apoio</p>

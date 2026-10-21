@@ -11,6 +11,9 @@ import GravadorAudio from "@/components/GravadorAudio";
 import { enviarAudioComoMaterial } from "@/lib/enviar-audio-material";
 import { anexarTexto } from "@/lib/gravacao";
 import { ROTULO_STATUS_TAREFA, type StatusTarefa } from "@/lib/tarefas";
+import { dividirDescricao, juntarDescricao, normalizarLink } from "@/lib/tarefa-link";
+import CampoLinks from "@/components/CampoLinks";
+import DescricaoComLinks from "@/components/DescricaoComLinks";
 
 const fmtData = (iso?: string | null) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
 const COR: Record<StatusTarefa, string> = {
@@ -24,8 +27,13 @@ const campo = "w-full bg-gray-800/60 border border-gray-700 focus:border-amber-5
 
 type ProximaAula = { date: string; startTime: string } | null;
 // Prazo: "proxima" = data da próxima aula agendada do aluno (padrão); "data" = escolhida à mão; "nenhum".
-type Form = { title: string; description: string; due_date: string; materiais: Set<string>; modo: "proxima" | "data" | "nenhum" };
-const formVazio = (proxima: ProximaAula): Form => ({ title: "", description: "", due_date: "", materiais: new Set(), modo: proxima ? "proxima" : "nenhum" });
+type Form = { title: string; description: string; links: string[]; due_date: string; materiais: Set<string>; modo: "proxima" | "data" | "nenhum" };
+const formVazio = (proxima: ProximaAula): Form => ({ title: "", description: "", links: [""], due_date: "", materiais: new Set(), modo: proxima ? "proxima" : "nenhum" });
+// Ao editar, os links que estavam dentro da descrição vão para o campo "Links".
+const formDaTarefa = (t: { title: string; description: string | null; due_date: string | null; materiais: { id: string }[] }): Form => {
+  const d = dividirDescricao(t.description);
+  return { title: t.title, description: d.texto, links: d.links.length ? d.links : [""], due_date: t.due_date ?? "", materiais: new Set(t.materiais.map(m => m.id)), modo: t.due_date ? "data" : "nenhum" };
+};
 
 function Painel({ titulo, acao, children }: { titulo: string; acao?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -57,6 +65,13 @@ function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCanc
       if (!f.due_date) { setErro("Escolha a data do prazo."); return; }
       due = f.due_date;
     }
+    // Cada link é conferido (aceita "youtu.be/abc" sem https) e vai para o fim da descrição.
+    const links: string[] = [];
+    for (const [i, l] of f.links.entries()) {
+      const n = normalizarLink(l);
+      if (!n.ok) { setErro(`O link ${i + 1} não parece um endereço válido. Cole o endereço completo, como https://youtu.be/…`); return; }
+      if (n.url) links.push(n.url);
+    }
     setSalvando(true);
     let materiais = f.materiais;
     if (audio) {
@@ -68,7 +83,7 @@ function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCanc
       }
       materiais = new Set([...f.materiais, id]);
     }
-    const m = await onSalvar({ ...f, due_date: due, materiais });
+    const m = await onSalvar({ ...f, description: juntarDescricao(f.description, links), due_date: due, materiais });
     if (m) { setErro(m); setSalvando(false); }
   };
 
@@ -77,6 +92,7 @@ function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCanc
     <form onSubmit={enviar} className="rounded-2xl border border-gray-700 bg-gray-900/60 p-4 grid gap-3 md:grid-cols-2">
       <input className={`${campo} md:col-span-2`} placeholder="Título da tarefa (ex.: Gravar a batida de samba)" value={f.title} maxLength={160} onChange={e => setF({ ...f, title: e.target.value })} aria-label="Título da tarefa" required />
       <textarea className={`${campo} md:col-span-2`} rows={3} placeholder="Descrição: o que o aluno deve fazer" value={f.description} maxLength={5000} onChange={e => setF({ ...f, description: e.target.value })} aria-label="Descrição" />
+      <div className="md:col-span-2"><CampoLinks valor={f.links} onChange={links => setF(x => ({ ...x, links }))} /></div>
       <div className="md:col-span-2">
         <GravadorAudio onAudio={a => { setAudio(a); setAudioId(null); }} onTranscricao={t => setF(x => ({ ...x, description: anexarTexto(x.description, t) }))} />
       </div>
@@ -183,7 +199,7 @@ export default function TarefasAba({ alunoId, proximaAula }: { alunoId: string; 
             {tarefas.map(t => (
               <li key={t.id} className="rounded-2xl border border-gray-800 bg-gray-900/40 p-4 space-y-3">
                 {editando === t.id ? (
-                  <FormTarefa inicial={{ title: t.title, description: t.description ?? "", due_date: t.due_date ?? "", materiais: new Set(t.materiais.map(m => m.id)), modo: t.due_date ? "data" : "nenhum" }} biblioteca={biblioteca} proximaAula={proximaAula} rotulo="Salvar" onCancelar={() => setEditando(null)}
+                  <FormTarefa inicial={formDaTarefa(t)} biblioteca={biblioteca} proximaAula={proximaAula} rotulo="Salvar" onCancelar={() => setEditando(null)}
                     onSalvar={async f => { const r = await editarTarefa(alunoId, t.id, { title: f.title, description: f.description, due_date: f.due_date }, [...f.materiais]); if (!r.ok) return r.error; setEditando(null); await carregar(); return null; }} />
                 ) : (
                   <>
@@ -194,7 +210,7 @@ export default function TarefasAba({ alunoId, proximaAula }: { alunoId: string; 
                       </div>
                       <span className={`shrink-0 inline-flex px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${COR[t.estado]}`}>{ROTULO_STATUS_TAREFA[t.estado]}</span>
                     </div>
-                    {t.description && <p className="text-sm text-gray-300 whitespace-pre-wrap break-words">{t.description}</p>}
+                    <DescricaoComLinks descricao={t.description} />
                     {t.materiais.length > 0 && <p className="text-xs text-gray-500">Apoio: {t.materiais.map(m => m.title).join(", ")}</p>}
 
                     {t.entregas.length > 0 && (
