@@ -1368,12 +1368,13 @@ export class PaymentService {
     
     if (!student || student.packagetype === 'avulsa') return null;
 
-    // Se já existem pagamentos pendentes/futuros, não gera duplicado
+    // Se já existe fatura em aberto (pendente OU vencida), não gera duplicada. Só olhar 'pendente' criava uma
+    // segunda fatura igual toda vez que se salvava a ficha de um aluno que já estava com a fatura vencida.
     const { data: existing } = await supabase
       .from('payment')
       .select('id')
       .eq('idstudent_fk', studentId)
-      .eq('status', 'pendente')
+      .in('status', ['pendente', 'vencido'])
       .limit(1);
 
     if (existing && existing.length > 0) return null;
