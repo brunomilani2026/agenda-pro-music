@@ -805,7 +805,7 @@ export default function AgendaPage() {
 
       // Gerar cobrança automaticamente ao marcar como realizada
       if (isRealizada && !wasRealizada && formData.studentName) {
-        await autoCreatePaymentForLesson(formData.studentName);
+        await autoCreatePaymentForLesson(formData.studentName, editingLesson.id);
         // Atualiza o painel Financeiro imediatamente — sem isto o lançamento
         // recém-criado só apareceria após F5 ou navegação.
         await refreshPayments();

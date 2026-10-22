@@ -1,0 +1,12 @@
+import { vencimentoAulaAvulsa, aulaGeraCobranca, somarDias, textoCobrancaAula } from '../lib/cobranca-avulsa';
+import { classificarEmail } from '../lib/email-tipos';
+let ok = 0, tot = 0; const t = (n: string, c: boolean) => { tot++; if (c) ok++; else console.log('FALHOU:', n); };
+t('aula 21/10 vence 24/10', vencimentoAulaAvulsa('2026-10-21', '2026-10-22') === '2026-10-24');
+t('aula antiga: vence hoje, nunca no passado', vencimentoAulaAvulsa('2026-10-21', '2026-11-05') === '2026-11-05');
+t('virada de mês', somarDias('2026-10-30', 3) === '2026-11-02');
+t('aula antes de 21/10 não gera cobrança retroativa', !aulaGeraCobranca('2026-10-20') && aulaGeraCobranca('2026-10-21') && aulaGeraCobranca('2026-11-04'));
+const x = textoCobrancaAula({ instrumento: 'Banjo', dataAula: '2026-10-21', valor: 150, vencimento: '2026-10-24' });
+t('título', x.title === 'Cobrança da aula de 21/10');
+t('mensagem', x.message === 'Sua aula de Banjo do dia 21/10 foi realizada. Valor: R$ 150,00, com vencimento em 24/10. Pague pelo Pix na área Financeiro do seu painel.');
+t('e-mail classificado como pagamento', classificarEmail(x.title) === 'pagamento');
+console.log(`${ok} de ${tot}`);

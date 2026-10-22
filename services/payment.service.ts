@@ -7,6 +7,7 @@ import { gerarPixEstatico, pixConfigurado, txidDoPagamento } from '@/lib/pix';
 import { alunosInativos } from '@/lib/aluno-inativo';
 import { emailStudent, emailTeacher } from '@/lib/notify-email';
 import { afterResponse } from '@/lib/after-response';
+import { AVULSA_PRAZO_DIAS, aulaGeraCobranca, textoCobrancaAula, vencimentoAulaAvulsa } from '@/lib/cobranca-avulsa';
 import { getLocalISODate, addMonthsKeepDay, projectNextMensalidadeDue, normalizePaymentMethod, nowInSaoPaulo } from '@/lib/utils';
 
 /**
@@ -1362,6 +1363,69 @@ export class PaymentService {
   /**
    * RF08/RF09: Gera cobranças automáticas no Asaas e no Banco
    */
+  /**
+   * Cobra UMA aula avulsa realizada: fatura 'pendente' (Pix estático junto), aviso no app e e-mail ao aluno.
+   * Idempotente por aula: qualquer fatura já ligada à aula (até uma que o professor cancelou) impede nova cobrança.
+   */
+  static async cobrarAulaAvulsa(
+    supabase: any,
+    student: { idstudent: string; idusers_fk: string | null; lessonprice: number | null; paymentmethod: string | null },
+    lesson: { idlesson: string; date: string; instrument?: string | null },
+  ): Promise<boolean> {
+    const valor = Number(student.lessonprice) || 0;
+    if (valor <= 0 || !aulaGeraCobranca(lesson.date)) return false;
+    const { data: ja } = await supabase.from('payment').select('id').eq('lesson_fk', lesson.idlesson).limit(1);
+    if (ja && ja.length > 0) return false;
+
+    const hoje = getLocalISODate(nowInSaoPaulo());
+    const vencimento = vencimentoAulaAvulsa(lesson.date, hoje);
+    const criada = await this.createPayment({
+      idstudent_fk: student.idstudent,
+      idusers_fk: student.idusers_fk,
+      amount: valor,
+      duedate: vencimento,
+      status: 'pendente',
+      method: normalizePaymentMethod(student.paymentmethod || 'pix'),
+      notes: `Aula avulsa de ${lesson.date.split('-').reverse().slice(0, 2).join('/')} (prazo de ${AVULSA_PRAZO_DIAS} dias)`,
+      lesson_fk: lesson.idlesson,
+      fine: 0,
+      interest: 0,
+    } as any, supabase);
+    if (!criada) return false;
+
+    const { title, message } = textoCobrancaAula({ instrumento: lesson.instrument, dataAula: lesson.date, valor, vencimento });
+    const { error: notifErr } = await supabase.from('notification').insert([{
+      idstudent_fk: student.idstudent, idusers_fk: student.idusers_fk, recipient: 'student', type: 'cobranca', title, message, read: false,
+    }]);
+    if (notifErr) console.error('cobrarAulaAvulsa: erro ao notificar:', notifErr.message);
+    await emailStudent(student.idstudent, { title, message, buttonLabel: 'Pagar agora', buttonPath: '/aluno/financeiro' });
+    return true;
+  }
+
+  /**
+   * Rede diária: toda aula realizada de aluno avulso (a partir de AVULSA_COBRANCA_DESDE) que ainda não tem fatura
+   * ganha uma. Cobre as aulas marcadas como realizadas automaticamente depois que o horário passa.
+   */
+  static async generateAvulsoLessonCharges(): Promise<number> {
+    const supabase = createAdminClient();
+    const hoje = getLocalISODate(nowInSaoPaulo());
+    const { data: alunos, error } = await supabase
+      .from('student')
+      .select('idstudent, idusers_fk, lessonprice, paymentmethod, packagetype, status, is_test')
+      .eq('packagetype', 'avulsa').in('status', ['ativo', 'bloqueado']).eq('is_test', false).gt('lessonprice', 0);
+    if (error) { console.error('generateAvulsoLessonCharges: erro ao buscar alunos:', error.message); return 0; }
+    let criadas = 0;
+    for (const a of alunos || []) {
+      const { data: aulas } = await supabase
+        .from('lesson').select('idlesson, date, instrument')
+        .eq('student_fk', a.idstudent).eq('lessonstatus', 'realizada').gte('date', '2026-10-21').lte('date', hoje).order('date');
+      for (const l of aulas || []) {
+        if (await this.cobrarAulaAvulsa(supabase, a as any, l as any)) criadas++;
+      }
+    }
+    return criadas;
+  }
+
   static async generateStudentCharges(studentId: string, idusers_fk: string, db?: any) {
     const supabase = db ?? await createClient();
     const { data: student } = await supabase.from('student').select('*').eq('idstudent', studentId).single();

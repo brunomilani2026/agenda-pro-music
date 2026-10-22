@@ -14,7 +14,7 @@ import { CreditService } from '@/services/credit.service';
 import { NotificationService } from '@/services/notification.service';
 import { emailStudent, emailTeacher, lessonObsForEmail, lessonMeetLineForEmail, lessonEmailCta, getTeacherMeetLink } from '@/lib/notify-email';
 import { getSessionUser } from '@/lib/session';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { AsaasClient, methodToBillingType } from '@/lib/asaas';
 import { Lesson as UILesson } from '@/types/lesson';
 import { Lesson as DBLesson, Student } from '@/types/database.types';
@@ -2188,7 +2188,7 @@ export async function fetchTeacherDashboardMetrics() {
   }
 }
 
-export async function autoCreatePaymentForLesson(studentName: string): Promise<void> {
+export async function autoCreatePaymentForLesson(studentName: string, lessonId?: string): Promise<void> {
   try {
     const dbUser = await getSessionUser();
     if (!dbUser) return;
@@ -2199,11 +2199,18 @@ export async function autoCreatePaymentForLesson(studentName: string): Promise<v
     const pkg = (student.packagetype || 'avulsa').toLowerCase();
     const today = getLocalISODate(new Date());
 
-    // Aluno avulso: professor já recebe o valor na hora da aula. O lançamento
-    // nasce como 'pago' para não gerar uma "dívida" falsa no financeiro.
-    // Mensalistas e alunos de pacote de créditos têm fatura própria gerada
-    // separadamente — não duplicamos o lançamento aqui.
+    // Aluno avulso: a aula realizada vira uma cobrança PENDENTE (prazo de 3 dias) com aviso e e-mail ao aluno;
+    // se ele pagou na hora, é só clicar em "Marcar como paga" no Financeiro. A cobrança é ligada à aula (lesson_fk),
+    // então a rotina diária não cobra a mesma aula de novo. Mensalistas e pacote de créditos têm fatura própria.
     const isAvulso = pkg === 'avulsa';
+    if (isAvulso) {
+      if (!lessonId) return;
+      const admin = createAdminClient();
+      const { data: aula } = await admin.from('lesson').select('idlesson, date, instrument, idusers_fk').eq('idlesson', lessonId).maybeSingle();
+      if (!aula || aula.idusers_fk !== dbUser.idusers) return;
+      await PaymentService.cobrarAulaAvulsa(admin, student as any, aula as any);
+      return;
+    }
 
     await PaymentService.createPayment({
       idstudent_fk: student.idstudent,

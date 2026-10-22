@@ -51,6 +51,11 @@ export async function GET(request: NextRequest) {
     // (student.expirationdate) sem nenhuma fatura gerada ganham a mensalidade
     // 'pendente' aqui — o passo 1 já a marca vencida e o passo 2 aplica as
     // consequências (bloqueio + notificação + e-mail) na mesma execução.
+    // Atalho de manutenção: ?so=avulsas roda só a cobrança das aulas avulsas realizadas (sem lembretes nem bloqueios).
+    if (new URL(request.url).searchParams.get('so') === 'avulsas') {
+      return NextResponse.json({ date: today, avulsasCobradas: await PaymentService.generateAvulsoLessonCharges() });
+    }
+
     const invoicesCreated = await PaymentService.generateMensalidadesFromExpiredPlans();
 
     // 1. Pendente com vencimento passado → vencido
@@ -97,6 +102,9 @@ export async function GET(request: NextRequest) {
 
     // 4. Lembretes de vencimento (RF07): fatura pendente vencendo em 5 dias
     // ou hoje → aviso in-app + e-mail ao aluno (idempotente por dia).
+    // 3c. Aulas avulsas realizadas sem fatura ganham a cobrança (a fatura nasce antes dos lembretes do dia).
+    const avulsasCobradas = await PaymentService.generateAvulsoLessonCharges();
+
     const dueReminders = await PaymentService.sendDueReminders();
 
     // 5. Lembrete diário de fatura já vencida, enquanto seguir em aberto.
@@ -108,6 +116,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       date: today,
       invoicesCreated,
+      avulsasCobradas,
       dueReminders,
       overdueReminders,
       markedOverdue: overdueRows?.length || 0,
