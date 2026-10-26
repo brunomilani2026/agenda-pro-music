@@ -714,7 +714,7 @@ export default function AlunosPage() {
                   type="time"
                   value={gradeForm.startTime}
                   onChange={e => setGradeForm({ ...gradeForm, startTime: e.target.value })}
-                  className="w-full bg-gray-900/50 border border-gray-700/50 rounded-xl p-3.5 text-white focus:border-indigo-500/50 outline-none font-bold"
+                  className="w-full bg-gray-900/50 border border-gray-700/50 rounded-xl p-3.5 text-white focus:border-indigo-500/50 outline-none font-bold [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 />
               </div>
               <div>
