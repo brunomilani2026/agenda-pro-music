@@ -738,7 +738,8 @@ export async function createAgendaLesson(
 
 export async function updateAgendaLesson(
   id: string,
-  uiLesson: Partial<UILesson>
+  uiLesson: Partial<UILesson>,
+  opts?: { semCredito?: boolean }
 ): Promise<{ success: boolean; warning?: string; error?: string }> {
   try {
     const dbUser = await getSessionUser();
@@ -822,7 +823,7 @@ export async function updateAgendaLesson(
       }
       if (student) {
         // Até 2 reposições por mês (lib/regra-reposicao.ts). `alreadyUsedBenefit` = não gerou crédito.
-        let alreadyUsedBenefit = !(await CreditService.canGrantCancellationCredit(student.idstudent));
+        let alreadyUsedBenefit = !!opts?.semCredito || !(await CreditService.canGrantCancellationCredit(student.idstudent));
         if (!alreadyUsedBenefit) {
           const expiresAt = new Date();
           expiresAt.setDate(expiresAt.getDate() + VALIDADE_REPOSICAO_DIAS);

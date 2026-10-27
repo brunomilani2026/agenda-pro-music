@@ -355,15 +355,16 @@ export default function FichaAlunoPage() {
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [acaoMsg, setAcaoMsg] = useState<string | null>(null);
   const [acaoSalvando, setAcaoSalvando] = useState(false);
+  const [acaoSemRepo, setAcaoSemRepo] = useState(false);
   const abrirAcaoAula = (aula: FichaAula, tipo: "remarcar" | "cancelar") => {
-    setAcaoAula({ aula, tipo }); setAcaoData(""); setAcaoInicio(aula.startTime?.slice(0, 5) ?? ""); setAcaoErro(null); setAcaoMsg(null);
+    setAcaoAula({ aula, tipo }); setAcaoSemRepo(false); setAcaoData(""); setAcaoInicio(aula.startTime?.slice(0, 5) ?? ""); setAcaoErro(null); setAcaoMsg(null);
   };
   const confirmarAcaoAula = async () => {
     if (!acaoAula) return;
     setAcaoSalvando(true); setAcaoErro(null);
     try {
       const r = acaoAula.tipo === "cancelar"
-        ? await updateAgendaLesson(acaoAula.aula.id, { status: "cancelada" })
+        ? await updateAgendaLesson(acaoAula.aula.id, { status: "cancelada" }, { semCredito: acaoSemRepo })
         : await rescheduleLessonByTeacher(acaoAula.aula.id, acaoData, acaoInicio, somarHora(acaoInicio, 50));
       if (!r.success) { setAcaoErro(r.error ?? "Não foi possível concluir. Tente de novo."); return; }
       setAcaoMsg(r.warning ?? (acaoAula.tipo === "cancelar" ? "Aula cancelada e aluno avisado." : "Aula remarcada e aluno avisado."));
@@ -384,7 +385,13 @@ export default function FichaAlunoPage() {
             {acaoAula.tipo === "cancelar" ? "Cancelar" : "Remarcar"} a aula de {fmtData(acaoAula.aula.date)} às {acaoAula.aula.startTime}
           </p>
           {acaoAula.tipo === "cancelar" ? (
-            <p className="text-xs text-gray-400">O aluno é avisado por e-mail e no app. Se ainda tiver direito (até 2 por mês), ele ganha um crédito de reposição de 30 dias.</p>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-400">O aluno é avisado por e-mail e no app. Por padrão, se ainda tiver direito (até 2 por mês), ele ganha um crédito de reposição de 30 dias.</p>
+              <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                <input type="checkbox" checked={acaoSemRepo} onChange={e => setAcaoSemRepo(e.target.checked)} className="w-4 h-4 accent-amber-500" />
+                Não gerar reposição (só cancelar)
+              </label>
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="text-xs text-gray-400">Novo dia
