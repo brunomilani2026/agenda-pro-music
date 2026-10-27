@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BookOpen, CalendarClock, Edit3, Info, ListChecks, Lock, Package, Plus, RefreshCw, Repeat, Trash2, Wallet, X } from "lucide-react";
 import { definirNivelMusical, fetchFichaAluno } from "./actions";
-import { marcarReposicaoPeloProfessor, settlePaymentManually } from "../../agenda/actions";
+import { marcarReposicaoPeloProfessor, rescheduleLessonByTeacher, settlePaymentManually, updateAgendaLesson } from "../../agenda/actions";
 import { useAppContext } from "../../AppContext";
 import { NIVEIS_MUSICAIS, ROTULO_NIVEL } from "@/lib/nivel-musical";
 import { apagarNota, fetchDiario, salvarNota, salvarRegistroAula } from "./diario-actions";
@@ -109,7 +109,7 @@ function Painel({ titulo, children, acao }: { titulo: string; children: React.Re
   );
 }
 
-function LinhaAula({ a, registro, onRegistro }: { a: FichaAula; registro?: RegistroAula; onRegistro?: (a: FichaAula) => void }) {
+function LinhaAula({ a, registro, onRegistro, onAcao }: { a: FichaAula; registro?: RegistroAula; onRegistro?: (a: FichaAula) => void; onAcao?: (a: FichaAula, tipo: "remarcar" | "cancelar") => void }) {
   const st = statusAula(a.status);
   return (
     <li className="flex items-start gap-3 py-2.5">
@@ -128,6 +128,12 @@ function LinhaAula({ a, registro, onRegistro }: { a: FichaAula; registro?: Regis
           <button onClick={() => onRegistro(a)} className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">
             <BookOpen className="w-3 h-3" />{registro ? "Ver registro" : "Registrar aula"}
           </button>
+        )}
+        {onAcao && a.status === "agendada" && (
+          <div className="flex gap-3">
+            <button onClick={() => onAcao(a, "remarcar")} className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Remarcar</button>
+            <button onClick={() => onAcao(a, "cancelar")} className="text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-300">Cancelar</button>
+          </div>
         )}
       </div>
     </li>
@@ -341,6 +347,65 @@ export default function FichaAlunoPage() {
       setRepoSalvando(false);
     }
   };
+
+  // Remarcar ou cancelar uma aula agendada direto da ficha (aluno avisou que não vem).
+  const [acaoAula, setAcaoAula] = useState<{ aula: FichaAula; tipo: "remarcar" | "cancelar" } | null>(null);
+  const [acaoData, setAcaoData] = useState("");
+  const [acaoInicio, setAcaoInicio] = useState("");
+  const [acaoErro, setAcaoErro] = useState<string | null>(null);
+  const [acaoMsg, setAcaoMsg] = useState<string | null>(null);
+  const [acaoSalvando, setAcaoSalvando] = useState(false);
+  const abrirAcaoAula = (aula: FichaAula, tipo: "remarcar" | "cancelar") => {
+    setAcaoAula({ aula, tipo }); setAcaoData(""); setAcaoInicio(aula.startTime?.slice(0, 5) ?? ""); setAcaoErro(null); setAcaoMsg(null);
+  };
+  const confirmarAcaoAula = async () => {
+    if (!acaoAula) return;
+    setAcaoSalvando(true); setAcaoErro(null);
+    try {
+      const r = acaoAula.tipo === "cancelar"
+        ? await updateAgendaLesson(acaoAula.aula.id, { status: "cancelada" })
+        : await rescheduleLessonByTeacher(acaoAula.aula.id, acaoData, acaoInicio, somarHora(acaoInicio, 50));
+      if (!r.success) { setAcaoErro(r.error ?? "Não foi possível concluir. Tente de novo."); return; }
+      setAcaoMsg(r.warning ?? (acaoAula.tipo === "cancelar" ? "Aula cancelada e aluno avisado." : "Aula remarcada e aluno avisado."));
+      setAcaoAula(null);
+      await Promise.all([carregar(), reloadLoadedLessons().catch(() => {})]);
+    } catch {
+      setAcaoErro("Não foi possível concluir. Tente de novo.");
+    } finally {
+      setAcaoSalvando(false);
+    }
+  };
+  const painelAcaoAula = (
+    <>
+      {acaoMsg && <p role="status" className="mt-3 text-sm text-green-400 font-medium">{acaoMsg}</p>}
+      {acaoAula && (
+        <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+          <p className="text-sm font-bold text-white">
+            {acaoAula.tipo === "cancelar" ? "Cancelar" : "Remarcar"} a aula de {fmtData(acaoAula.aula.date)} às {acaoAula.aula.startTime}
+          </p>
+          {acaoAula.tipo === "cancelar" ? (
+            <p className="text-xs text-gray-400">O aluno é avisado por e-mail e no app. Se ainda tiver direito (até 2 por mês), ele ganha um crédito de reposição de 30 dias.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="text-xs text-gray-400">Novo dia
+                <input type="date" value={acaoData} min={new Date().toISOString().slice(0, 10)} onChange={e => setAcaoData(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
+              </label>
+              <label className="text-xs text-gray-400">Início
+                <input type="time" value={acaoInicio} onChange={e => setAcaoInicio(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
+              </label>
+            </div>
+          )}
+          {acaoErro && <p role="alert" className="text-sm text-red-400 font-medium">{acaoErro}</p>}
+          <div className="flex gap-2">
+            <button type="button" disabled={acaoSalvando || (acaoAula.tipo === "remarcar" && (!acaoData || !acaoInicio))} onClick={confirmarAcaoAula} className="px-4 py-2 rounded-xl bg-amber-500 text-gray-900 text-xs font-black uppercase tracking-widest disabled:opacity-50">
+              {acaoSalvando ? "Salvando..." : acaoAula.tipo === "cancelar" ? "Cancelar a aula e avisar" : "Remarcar e avisar"}
+            </button>
+            <button type="button" onClick={() => setAcaoAula(null)} className="px-4 py-2 rounded-xl border border-gray-700 text-gray-300 text-xs font-black uppercase tracking-widest">Voltar</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
 
   // Diário e anotações (etapa 2) carregam à parte: se o banco ainda não tiver as
   // tabelas, a ficha continua funcionando e só essas abas avisam.
@@ -582,7 +647,8 @@ export default function FichaAlunoPage() {
       {aba === "geral" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Painel titulo="Próximas aulas" acao={<button onClick={() => setAba("aulas")} className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Ver todas</button>}>
-            {proximas.length ? <ul className="divide-y divide-gray-800">{proximas.map(a => <LinhaAula key={a.id} a={a} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma aula futura agendada.</p>}
+            {proximas.length ? <ul className="divide-y divide-gray-800">{proximas.map(a => <LinhaAula key={a.id} a={a} onAcao={abrirAcaoAula} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma aula futura agendada.</p>}
+            {painelAcaoAula}
           </Painel>
           <Painel titulo="Últimas aulas realizadas">
             {ultimas.length ? <ul className="divide-y divide-gray-800">{ultimas.map(a => <LinhaAula key={a.id} a={a} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma aula realizada ainda.</p>}
@@ -642,7 +708,8 @@ export default function FichaAlunoPage() {
               <option value="90">Últimos 90 dias</option>
             </select>
           </div>
-          {aulasFiltradas.length ? <ul className="divide-y divide-gray-800">{aulasFiltradas.map(a => <LinhaAula key={a.id} a={a} registro={registros.get(a.id)} onRegistro={diarioOk ? setAulaAberta : undefined} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma aula nesse filtro.</p>}
+          {aulasFiltradas.length ? <ul className="divide-y divide-gray-800">{aulasFiltradas.map(a => <LinhaAula key={a.id} a={a} registro={registros.get(a.id)} onRegistro={diarioOk ? setAulaAberta : undefined} onAcao={abrirAcaoAula} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma aula nesse filtro.</p>}
+          {painelAcaoAula}
         </Painel>
       )}
 
