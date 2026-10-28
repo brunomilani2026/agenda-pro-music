@@ -1225,6 +1225,8 @@ export async function marcarReposicaoPeloProfessor(
     await LessonService.updateLesson(credit.origin_lesson_fk, { lessonstatus: 'remarcada' as any });
 
     const msg = `Sua reposição foi agendada para ${fmtDate(date)} às ${startTime}. Sem cobrança adicional.`;
+    // O professor também recebe o registro (in-app + e-mail), como nas demais ações de aula.
+    const msgProf = `Você marcou a reposição de ${student.name} para ${fmtDate(date)} às ${startTime}.`;
     let warning: string | undefined;
     const [notif, emailRes] = await Promise.all([
       NotificationService.create({
@@ -1241,6 +1243,20 @@ export async function marcarReposicaoPeloProfessor(
         buttonLabel: 'Ver minhas aulas',
         buttonPath: '/aluno/dashboard',
       }),
+      NotificationService.create({
+        idstudent_fk: student.idstudent,
+        idusers_fk: dbUser.idusers,
+        recipient: 'teacher',
+        type: 'confirmacao',
+        title: 'Reposição agendada',
+        message: msgProf,
+      }),
+      afterResponse(() => emailTeacher(dbUser.idusers, {
+        title: 'Reposição agendada',
+        message: msgProf,
+        buttonLabel: 'Abrir agenda',
+        buttonPath: '/agenda',
+      })),
     ]);
     if (!notif) warning = 'Reposição marcada, mas a notificação no app não pôde ser gravada. Avise o aluno.';
     else if (!emailRes.ok) warning = `Reposição marcada e aluno avisado no app, mas o e-mail falhou: ${emailFailureText(emailRes)}`;
