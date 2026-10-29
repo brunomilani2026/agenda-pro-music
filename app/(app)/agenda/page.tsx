@@ -9,7 +9,7 @@ import { Lesson, Instrument } from "@/types/lesson";
 import { useAppContext } from "../AppContext";
 import { fetchAgendaLessons, createAgendaLesson, updateAgendaLesson, deleteAgendaLesson, deleteAgendaLessonScope, countAgendaLessonsForDelete, fetchAgendaStudents, createAgendaStudent, autoCreatePaymentForLesson, rescheduleLessonByTeacher, releaseLessonForStudentReschedule, fetchBlockedSlots, fetchAgendaMeta, createBlockedSlot, deleteBlockedSlot, deleteBlockedSlotSeries, fetchDaysOff, toggleDayOff } from "./actions";
 import type { DeleteLessonScope } from "./actions";
-import { CheckCircle, AlertCircle, RefreshCw, Lock, Trash2, CalendarOff, AlertTriangle, UserCheck } from "lucide-react";
+import { CheckCircle, AlertCircle, RefreshCw, Lock, Trash2, CalendarOff, AlertTriangle, UserCheck, User } from "lucide-react";
 import { isOverdueCancelNote, isOverduePayment, normalizeStudentName } from "@/lib/lesson-cancel-reasons";
 import { createPortal } from "react-dom";
 import { montarResumoAula, type TomLinha } from "@/lib/resumo-aula";
@@ -434,6 +434,13 @@ export default function AgendaPage() {
     }
     return names;
   }, [payments, mockStudents]);
+
+  // Atalho para a ficha do aluno (/alunos/[id]); sem correspondência, cai na lista.
+  const fichaHref = (studentName: string) => {
+    const nomeNorm = normalizeStudentName(studentName);
+    const aluno = mockStudents.find(s => normalizeStudentName(s.name) === nomeNorm);
+    return aluno?.id ? `/alunos/${aluno.id}` : "/alunos";
+  };
 
   /**
    * Aula cancelada automaticamente pela inadimplência de um aluno que continua
@@ -1169,7 +1176,18 @@ export default function AgendaPage() {
                             className={`lesson-card absolute left-1 right-1 z-10 rounded-md text-xs p-1.5 overflow-hidden shadow-sm transition-all hover:scale-[1.02] cursor-pointer ${getStatusColor(lesson.status)}`}
                             style={{ top: `${top}px`, height: `${height - 2}px` }}
                           >
-                            <div className="font-semibold truncate">{lesson.studentName}</div>
+                            <div className="flex items-center justify-between gap-1">
+                              <div className="font-semibold truncate">{lesson.studentName}</div>
+                              <Link
+                                href={fichaHref(lesson.studentName)}
+                                onClick={(e) => { e.stopPropagation(); setHoverAula(null); }}
+                                title={`Abrir a ficha de ${lesson.studentName}`}
+                                aria-label={`Abrir a ficha de ${lesson.studentName}`}
+                                className="shrink-0 rounded p-0.5 bg-black/30 hover:bg-black/60 text-white"
+                              >
+                                <User className="w-3 h-3" />
+                              </Link>
+                            </div>
                             <div className="text-[10px] opacity-80 flex items-center justify-between">
                               <span>{lesson.startTime}</span>
                               <span className="capitalize">{lesson.instrument}</span>
@@ -1315,7 +1333,7 @@ export default function AgendaPage() {
 
                   <h3 className="font-medium text-gray-100 flex items-center gap-2">
                     <Link
-                      href="/alunos"
+                      href={fichaHref(lesson.studentName)}
                       onClick={(e) => e.stopPropagation()}
                       title={`Abrir ficha de ${lesson.studentName}`}
                       className="hover:text-amber-500 hover:underline transition-colors"
@@ -1362,6 +1380,13 @@ export default function AgendaPage() {
 
                   {(lesson.status === 'agendada' || lesson.status === 'aguardando_pagamento') && (
                     <div className="mt-3 flex justify-end gap-2" onClick={e => e.stopPropagation()}>
+                      <Link
+                        href={fichaHref(lesson.studentName)}
+                        className="flex items-center gap-1.5 text-[10px] font-bold text-gray-200 hover:text-white bg-gray-700/60 hover:bg-gray-700 border border-gray-600 px-2.5 py-1 rounded-lg transition-colors"
+                        title={`Abrir a ficha de ${lesson.studentName}`}
+                      >
+                        <User className="w-3 h-3" /> Ficha
+                      </Link>
                       <button
                         onClick={() => {
                           setRescheduleLesson(lesson);
