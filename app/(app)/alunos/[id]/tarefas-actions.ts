@@ -102,6 +102,7 @@ export async function criarTarefa(idstudents: string[], bruto: Record<string, un
       await avisarAlunoDaTarefa(supabase, {
         teacherId: dbUser.idusers, studentId: t.idstudent_fk as string, title: 'Nova tarefa',
         message: `Seu professor passou a tarefa "${v.valor.title}".${prazoPorExtenso(v.valor.due_date)}`,
+        copiaProfessor: { tarefa: v.valor.title, descricao: String(v.valor.description ?? ''), prazo: v.valor.due_date ?? null },
       });
     }
     return { ok: true, criadas: criadas?.length ?? 0 };

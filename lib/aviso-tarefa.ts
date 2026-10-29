@@ -15,11 +15,25 @@ type Cliente = { from: (tabela: string) => any };
 /** Professor -> aluno. Aluno inativo não recebe nada (regra do sistema: inativo fica fora dos avisos). */
 export async function avisarAlunoDaTarefa(
   supabase: Cliente,
-  p: { teacherId: string; studentId: string; title: string; message: string },
+  p: { teacherId: string; studentId: string; title: string; message: string; copiaProfessor?: { tarefa: string; descricao: string; prazo: string | null } },
 ): Promise<void> {
   try {
     const inativos = await alunosInativos([p.studentId]);
     if (inativos.has(p.studentId)) return;
+
+    // Cópia para o professor com o conteúdo completo da tarefa: o briefing diário lê esse e-mail
+    // para lembrar, na próxima aula do aluno, o que foi passado na anterior.
+    if (p.copiaProfessor) {
+      const c = p.copiaProfessor;
+      const { data: aluno } = await supabase.from('student').select('name').eq('idstudent', p.studentId).maybeSingle();
+      const nome = String(aluno?.name ?? 'aluno').trim();
+      const prazo = c.prazo ? `\nPrazo: ${c.prazo.slice(0, 10).split('-').reverse().join('/')}` : '\nPrazo: sem prazo definido';
+      await afterResponse(() => emailTeacher(p.teacherId, {
+        title: `Tarefa para ${nome}`,
+        message: `Você passou uma tarefa para ${nome}.\nTarefa: ${c.tarefa}${prazo}\n\nO que foi pedido:\n${c.descricao || '(sem descrição)'}`,
+        buttonLabel: 'Ver tarefas do aluno', buttonPath: `/alunos/${p.studentId}`,
+      }));
+    }
 
     const { error } = await supabase.from('notification').insert([{
       idusers_fk: p.teacherId, idstudent_fk: p.studentId, recipient: 'student',

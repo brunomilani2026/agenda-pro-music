@@ -111,6 +111,7 @@ export async function criarTarefaEmLote(
       await avisarAlunoDaTarefa(supabase, {
         teacherId: dbUser.idusers, studentId: t.idstudent_fk as string, title: 'Nova tarefa',
         message: `Seu professor passou a tarefa "${base.valor.title}".${prazoPorExtenso(t.due_date as string | null)}`,
+        copiaProfessor: { tarefa: base.valor.title, descricao: String(base.valor.description ?? ''), prazo: (t.due_date as string | null) ?? null },
       });
     }
     return { ok: true, criadas: criadas?.length ?? 0, semAula };
