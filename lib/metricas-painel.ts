@@ -41,3 +41,10 @@ export function cancelamentosDoMes(aulas: Aula[], mes: string) {
   const base = realizadas + canceladas;
   return { canceladas, realizadas, taxa: base > 0 ? Math.round((canceladas / base) * 100) : 0 };
 }
+
+/** Faturamento do mês = o que já entrou + o que ainda falta receber de faturas que vencem até o fim do mês (inclui atrasadas). */
+export function faturamentoDoMes(pagamentos: Pgto[], mes: string) {
+  const recebido = recebidoNoMes(pagamentos, mes).total;
+  const faltaReceber = soma(pagamentos.filter(p => (p.status === 'pendente' || p.status === 'vencido') && p.date.slice(0, 7) <= mes));
+  return { total: recebido + faltaReceber, recebido, faltaReceber };
+}

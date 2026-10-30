@@ -1,4 +1,4 @@
-import { aReceber, canceladaAdministrativa, cancelamentosDoMes, recebidoNoMes, taxaRecebimentoDoMes } from '../lib/metricas-painel';
+import { aReceber, canceladaAdministrativa, cancelamentosDoMes, faturamentoDoMes, recebidoNoMes, taxaRecebimentoDoMes } from '../lib/metricas-painel';
 let ok = 0, tot = 0; const t = (n: string, c: boolean) => { tot++; if (c) ok++; else console.log('FALHOU:', n); };
 
 const pg = [
@@ -31,4 +31,6 @@ const aulas = [
 const c = cancelamentosDoMes(aulas, '2026-10');
 t('cancelamentos do mês sem os administrativos', c.canceladas === 1 && c.realizadas === 8);
 t('taxa 1 de 9 = 11%', c.taxa === 11);
+const f = faturamentoDoMes(pg, '2026-10');
+t('faturamento do mês = recebido + falta receber do mês (sem novembro)', f.recebido === 550 && f.faltaReceber === 425 && f.total === 975);
 console.log(`${ok} de ${tot}`);

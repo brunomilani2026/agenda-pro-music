@@ -5,7 +5,7 @@ import { useAppContext } from "../AppContext";
 import Link from "next/link";
 import { formatName, getLocalISODate } from "@/lib/utils";
 import PainelAlertas from "./PainelAlertas";
-import { aReceber, cancelamentosDoMes, recebidoNoMes, taxaRecebimentoDoMes } from "@/lib/metricas-painel";
+import { aReceber, cancelamentosDoMes, faturamentoDoMes, recebidoNoMes, taxaRecebimentoDoMes } from "@/lib/metricas-painel";
 
 export default function DashboardPage() {
   const { lessons, payments, teacherProfile, pendingRequestsCount, refreshPayments } = useAppContext();
@@ -47,6 +47,8 @@ export default function DashboardPage() {
   // Dinheiro que entrou no mês, pela data do pagamento. Alimenta o Faturamento, o Recebido e o Ticket médio.
   const recebidoMes = useMemo(() => recebidoNoMes(payments, currentMonth), [payments, currentMonth]);
   const revenue = recebidoMes.total;
+  // Previsão de fechamento do mês: recebido + o que falta receber das faturas que vencem até o fim do mês.
+  const faturamentoMes = useMemo(() => faturamentoDoMes(payments, currentMonth), [payments, currentMonth]);
 
   const overduePayments = useMemo(
     () => payments.filter(p => p.status === "vencido" || (p.status === "pendente" && p.date < today)),
@@ -158,8 +160,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
         <MetricCard
           title="Faturamento (Mês)"
-          value={`R$ ${Math.round(revenue).toLocaleString("pt-BR")}`}
-          subtitle="Recebido neste mês"
+          value={`R$ ${Math.round(faturamentoMes.total).toLocaleString("pt-BR")}`}
+          subtitle={faturamentoMes.faltaReceber > 0 ? `R$ ${Math.round(faturamentoMes.recebido).toLocaleString("pt-BR")} recebidos + R$ ${Math.round(faturamentoMes.faltaReceber).toLocaleString("pt-BR")} a receber` : "Tudo do mês já foi recebido"}
         />
         <MetricCard
           title="Aulas Hoje"
