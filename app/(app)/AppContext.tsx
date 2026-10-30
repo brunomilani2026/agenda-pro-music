@@ -40,6 +40,8 @@ export interface Payment {
   studentName: string;
   amount: number;
   date: string;
+  /** Dia em que foi pago (vazio se ainda não pagou); `date` é o vencimento. */
+  paidAt?: string | null;
   method: PaymentMethod;
   notes?: string;
   status: "pago" | "pendente" | "vencido" | "renegociado" | "cancelado";
@@ -55,6 +57,7 @@ export function mapPayments(raw: any[]): Payment[] {
     studentName: p.studentName,
     amount: p.amount,
     date: p.duedate,
+    paidAt: p.paymentdate || null,
     method: p.method as PaymentMethod,
     status: p.status as Payment['status'],
     notes: p.notes,

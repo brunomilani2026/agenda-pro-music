@@ -5,6 +5,7 @@ import { useAppContext } from "../AppContext";
 import Link from "next/link";
 import { formatName, getLocalISODate } from "@/lib/utils";
 import PainelAlertas from "./PainelAlertas";
+import { aReceber, cancelamentosDoMes, recebidoNoMes, taxaRecebimentoDoMes } from "@/lib/metricas-painel";
 
 export default function DashboardPage() {
   const { lessons, payments, teacherProfile, pendingRequestsCount, refreshPayments } = useAppContext();
@@ -40,15 +41,12 @@ export default function DashboardPage() {
     [lessons, currentMonth]
   );
 
-  const canceledClasses = useMemo(
-    () => lessons.filter(l => l.status === "cancelada" && l.date.startsWith(currentMonth)).length,
-    [lessons, currentMonth]
-  );
+  // Cancelamentos comuns do mês (sem os por inativação/pausa/inadimplência) e a taxa sobre as aulas do mês.
+  const cancelamentos = useMemo(() => cancelamentosDoMes(lessons, currentMonth), [lessons, currentMonth]);
 
-  const revenue = useMemo(
-    () => payments.filter(p => p.status === "pago").reduce((acc, curr) => acc + curr.amount, 0),
-    [payments]
-  );
+  // Dinheiro que entrou no mês, pela data do pagamento. Alimenta o Faturamento, o Recebido e o Ticket médio.
+  const recebidoMes = useMemo(() => recebidoNoMes(payments, currentMonth), [payments, currentMonth]);
+  const revenue = recebidoMes.total;
 
   const overduePayments = useMemo(
     () => payments.filter(p => p.status === "vencido" || (p.status === "pendente" && p.date < today)),
@@ -85,7 +83,7 @@ export default function DashboardPage() {
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const label = d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "").toUpperCase();
       const total = payments
-        .filter(p => p.status === "pago" && p.date.startsWith(key))
+        .filter(p => p.status === "pago" && (p.paidAt || p.date).startsWith(key))
         .reduce((acc, p) => acc + p.amount, 0);
       return { label, total, key };
     });
@@ -112,26 +110,15 @@ export default function DashboardPage() {
     [payments]
   );
 
+  // A receber = pendentes + vencidas (as vencidas também ainda não foram pagas).
+  const receber = useMemo(() => aReceber(payments, today), [payments, today]);
+
   // ── KPIs financeiros (pago vs. não pago) ───────────────────────────────────
-  // Recebido no mês atual (por vencimento da fatura)
-  const currentMonthPaid = useMemo(
-    () => payments.filter(p => p.status === "pago" && p.date.startsWith(currentMonth)).reduce((a, p) => a + p.amount, 0),
-    [payments, currentMonth]
-  );
+  // Taxa de recebimento do mês: das faturas que vencem no mês, quanto já foi pago.
+  const collectionRate = useMemo(() => taxaRecebimentoDoMes(payments, currentMonth), [payments, currentMonth]);
 
-  // Taxa de recebimento: pago / total faturado (pago + pendente + vencido)
-  const collectionRate = useMemo(() => {
-    const billed = payments
-      .filter(p => p.status === "pago" || p.status === "pendente" || p.status === "vencido")
-      .reduce((a, p) => a + p.amount, 0);
-    return billed > 0 ? Math.round((paidTotal / billed) * 100) : 0;
-  }, [payments, paidTotal]);
-
-  // Ticket médio dos pagamentos confirmados
-  const avgTicket = useMemo(
-    () => (paidPayments.length > 0 ? paidTotal / paidPayments.length : 0),
-    [paidPayments, paidTotal]
-  );
+  // Ticket médio dos pagamentos recebidos no mês
+  const avgTicket = recebidoMes.ticketMedio;
 
   const sortedPaidPayments = useMemo(
     () => [...paidPayments].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15),
@@ -152,7 +139,7 @@ export default function DashboardPage() {
             <div>
               <h1 className="text-3xl md:text-4xl font-black tracking-tight">Olá, {formatName(teacherName)}!</h1>
               <p className="mt-2 text-amber-900 font-medium max-w-xl text-lg leading-relaxed">
-                O mês está produtivo! Você já garantiu <b className="font-extrabold text-gray-900">R$ {revenue},00</b> em faturamento e você tem {todayClasses} aulas marcadas para hoje.
+                O mês está produtivo! Você já garantiu <b className="font-extrabold text-gray-900">R$ {Math.round(revenue).toLocaleString("pt-BR")}</b> em faturamento neste mês e você tem {todayClasses} aulas marcadas para hoje.
               </p>
             </div>
           </div>
@@ -171,8 +158,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
         <MetricCard
           title="Faturamento (Mês)"
-          value={`R$ ${revenue},00`}
-          subtitle="Geração de receita atual"
+          value={`R$ ${Math.round(revenue).toLocaleString("pt-BR")}`}
+          subtitle="Recebido neste mês"
         />
         <MetricCard
           title="Aulas Hoje"
@@ -186,8 +173,8 @@ export default function DashboardPage() {
         />
         <MetricCard
           title="Taxa de Canc."
-          value={canceledClasses.toString()}
-          subtitle="Aulas desmarcadas"
+          value={`${cancelamentos.taxa}%`}
+          subtitle={`${cancelamentos.canceladas} ${cancelamentos.canceladas === 1 ? "aula cancelada" : "aulas canceladas"} no mês`}
         />
         <Link href="/solicitacoes" className="block transition-transform hover:scale-[1.02] active:scale-95">
           <MetricCard
@@ -209,26 +196,26 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         <MetricCard
           title="Recebido (Mês)"
-          value={`R$ ${Math.round(currentMonthPaid).toLocaleString("pt-BR")}`}
+          value={`R$ ${Math.round(recebidoMes.total).toLocaleString("pt-BR")}`}
           subtitle="Pagamentos confirmados no mês"
           accent="emerald"
         />
         <MetricCard
           title="A Receber"
-          value={`R$ ${Math.round(pendingTotal).toLocaleString("pt-BR")}`}
-          subtitle="Faturas pendentes (ainda não pagas)"
-          accent={pendingTotal > 0 ? "amber" : undefined}
+          value={`R$ ${Math.round(receber.total).toLocaleString("pt-BR")}`}
+          subtitle={receber.emAtraso > 0 ? `Inclui R$ ${Math.round(receber.emAtraso).toLocaleString("pt-BR")} em atraso` : "Faturas pendentes (ainda não pagas)"}
+          accent={receber.total > 0 ? "amber" : undefined}
         />
         <MetricCard
           title="Taxa de Recebimento"
-          value={`${collectionRate}%`}
-          subtitle="Pago vs. total faturado"
-          accent={collectionRate >= 70 ? "emerald" : collectionRate >= 40 ? "amber" : "red"}
+          value={collectionRate === null ? "—" : `${collectionRate}%`}
+          subtitle="Faturas do mês já pagas"
+          accent={collectionRate === null ? undefined : collectionRate >= 70 ? "emerald" : collectionRate >= 40 ? "amber" : "red"}
         />
         <MetricCard
           title="Ticket Médio"
           value={`R$ ${Math.round(avgTicket).toLocaleString("pt-BR")}`}
-          subtitle="Média por pagamento recebido"
+          subtitle="Média por pagamento recebido no mês"
           accent="emerald"
         />
       </div>
