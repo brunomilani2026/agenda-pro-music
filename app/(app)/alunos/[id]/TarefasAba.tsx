@@ -27,12 +27,12 @@ const campo = "w-full bg-gray-800/60 border border-gray-700 focus:border-amber-5
 
 type ProximaAula = { date: string; startTime: string } | null;
 // Prazo: "proxima" = data da próxima aula agendada do aluno (padrão); "data" = escolhida à mão; "nenhum".
-type Form = { title: string; description: string; links: string[]; due_date: string; materiais: Set<string>; modo: "proxima" | "data" | "nenhum" };
-const formVazio = (proxima: ProximaAula): Form => ({ title: "", description: "", links: [""], due_date: "", materiais: new Set(), modo: proxima ? "proxima" : "nenhum" });
+type Form = { title: string; description: string; links: string[]; proxima_aula: string; due_date: string; materiais: Set<string>; modo: "proxima" | "data" | "nenhum" };
+const formVazio = (proxima: ProximaAula): Form => ({ title: "", description: "", links: [""], proxima_aula: "", due_date: "", materiais: new Set(), modo: proxima ? "proxima" : "nenhum" });
 // Ao editar, os links que estavam dentro da descrição vão para o campo "Links".
 const formDaTarefa = (t: { title: string; description: string | null; due_date: string | null; materiais: { id: string }[] }): Form => {
   const d = dividirDescricao(t.description);
-  return { title: t.title, description: d.texto, links: d.links.length ? d.links : [""], due_date: t.due_date ?? "", materiais: new Set(t.materiais.map(m => m.id)), modo: t.due_date ? "data" : "nenhum" };
+  return { title: t.title, description: d.texto, links: d.links.length ? d.links : [""], proxima_aula: "", due_date: t.due_date ?? "", materiais: new Set(t.materiais.map(m => m.id)), modo: t.due_date ? "data" : "nenhum" };
 };
 
 function Painel({ titulo, acao, children }: { titulo: string; acao?: React.ReactNode; children: React.ReactNode }) {
@@ -96,6 +96,12 @@ function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCanc
       <div className="md:col-span-2">
         <GravadorAudio onAudio={a => { setAudio(a); setAudioId(null); }} onTranscricao={t => setF(x => ({ ...x, description: anexarTexto(x.description, t) }))} />
       </div>
+      {rotulo.toLowerCase().includes("criar") && (
+        <label className="md:col-span-2 block">
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Para a próxima aula (só para mim, o aluno não vê)</span>
+          <textarea className={`${campo} mt-1`} rows={2} placeholder="Ex.: Na próxima aula, estudar Trem das Onze" value={f.proxima_aula} maxLength={1000} onChange={e => setF({ ...f, proxima_aula: e.target.value })} aria-label="Para a próxima aula (só para mim)" />
+        </label>
+      )}
       <fieldset className="rounded-2xl border border-gray-800 p-3 md:col-span-2 space-y-2">
         <legend className="px-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Prazo sugerido</legend>
         <label className={`${opcao} ${!proximaAula ? "opacity-50 cursor-not-allowed" : ""}`}>
@@ -189,7 +195,7 @@ export default function TarefasAba({ alunoId, proximaAula }: { alunoId: string; 
         {criando && (
           <div className="mb-4">
             <FormTarefa inicial={formVazio(proximaAula)} biblioteca={biblioteca} proximaAula={proximaAula} rotulo="Criar tarefa" onCancelar={() => setCriando(false)}
-              onSalvar={async f => { const r = await criarTarefa([alunoId], { title: f.title, description: f.description, due_date: f.due_date }, [...f.materiais]); if (!r.ok) return r.error; setCriando(false); await carregar(); return null; }} />
+              onSalvar={async f => { const r = await criarTarefa([alunoId], { title: f.title, description: f.description, due_date: f.due_date }, [...f.materiais], f.proxima_aula); if (!r.ok) return r.error; setCriando(false); await carregar(); return null; }} />
           </div>
         )}
         {tarefas.length === 0 && !criando ? (

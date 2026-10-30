@@ -15,7 +15,7 @@ type Cliente = { from: (tabela: string) => any };
 /** Professor -> aluno. Aluno inativo não recebe nada (regra do sistema: inativo fica fora dos avisos). */
 export async function avisarAlunoDaTarefa(
   supabase: Cliente,
-  p: { teacherId: string; studentId: string; title: string; message: string; copiaProfessor?: { tarefa: string; descricao: string; prazo: string | null } },
+  p: { teacherId: string; studentId: string; title: string; message: string; copiaProfessor?: { tarefa: string; descricao: string; prazo: string | null; proximaAula?: string } },
 ): Promise<void> {
   try {
     const inativos = await alunosInativos([p.studentId]);
@@ -27,10 +27,14 @@ export async function avisarAlunoDaTarefa(
       const c = p.copiaProfessor;
       const { data: aluno } = await supabase.from('student').select('name').eq('idstudent', p.studentId).maybeSingle();
       const nome = String(aluno?.name ?? 'aluno').trim();
+      // O que foi trabalhado na última aula registrada (Diário): contexto para o briefing.
+      const { data: reg } = await supabase.from('lesson_record').select('content_worked').eq('idstudent_fk', p.studentId)
+        .not('content_worked', 'is', null).order('updated_at', { ascending: false }).limit(1).maybeSingle();
+      const estudado = String(reg?.content_worked ?? '').trim();
       const prazo = c.prazo ? `\nPrazo: ${c.prazo.slice(0, 10).split('-').reverse().join('/')}` : '\nPrazo: sem prazo definido';
       await afterResponse(() => emailTeacher(p.teacherId, {
         title: `Tarefa para ${nome}`,
-        message: `Você passou uma tarefa para ${nome}.\nTarefa: ${c.tarefa}${prazo}\n\nO que foi pedido:\n${c.descricao || '(sem descrição)'}`,
+        message: `Você passou uma tarefa para ${nome}.\nTarefa: ${c.tarefa}${prazo}\n\nO que foi pedido:\n${c.descricao || '(sem descrição)'}${estudado ? `\n\nEstudado na última aula:\n${estudado}` : ''}${c.proximaAula ? `\n\nPara a próxima aula (só para o professor):\n${c.proximaAula}` : ''}`,
         buttonLabel: 'Ver tarefas do aluno', buttonPath: `/alunos/${p.studentId}`,
       }));
     }

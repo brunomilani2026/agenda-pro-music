@@ -76,7 +76,7 @@ export async function fetchTarefas(idstudent: string): Promise<
 }
 
 /** Cria a tarefa para um ou mais alunos (uma tarefa por aluno). */
-export async function criarTarefa(idstudents: string[], bruto: Record<string, unknown>, materialIds: string[]): Promise<{ ok: true; criadas: number } | Falha> {
+export async function criarTarefa(idstudents: string[], bruto: Record<string, unknown>, materialIds: string[], proximaAula?: string): Promise<{ ok: true; criadas: number } | Falha> {
   try {
     const v = limparTarefa(bruto); if (!v.ok) return v;
     const ids = [...new Set(idstudents)].filter(x => UUID.test(x));
@@ -102,7 +102,7 @@ export async function criarTarefa(idstudents: string[], bruto: Record<string, un
       await avisarAlunoDaTarefa(supabase, {
         teacherId: dbUser.idusers, studentId: t.idstudent_fk as string, title: 'Nova tarefa',
         message: `Seu professor passou a tarefa "${v.valor.title}".${prazoPorExtenso(v.valor.due_date)}`,
-        copiaProfessor: { tarefa: v.valor.title, descricao: String(v.valor.description ?? ''), prazo: v.valor.due_date ?? null },
+        copiaProfessor: { tarefa: v.valor.title, descricao: String(v.valor.description ?? ''), prazo: v.valor.due_date ?? null, proximaAula: String(proximaAula ?? '').trim().slice(0, 1000) },
       });
     }
     return { ok: true, criadas: criadas?.length ?? 0 };
