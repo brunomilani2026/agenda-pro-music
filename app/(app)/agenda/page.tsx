@@ -50,8 +50,13 @@ function weekdayLabel(iso?: string): string {
   return names[new Date(`${iso}T12:00:00`).getDay()] || '';
 }
 
+// No celular a grade mostra UM dia por vez (os 7 dias do cabeçalho escolhem qual),
+// com a coluna de horas estreita e o resto da largura para o dia.
+const COL_HORA_MOBILE = '3.5rem';
+const colunasGrade = (mobile: boolean) => ({ gridTemplateColumns: mobile ? `${COL_HORA_MOBILE} minmax(0, 1fr)` : 'repeat(8, minmax(0, 1fr))' });
+
 // Componente isolado para a linha "agora" — só ele re-renderiza a cada minuto
-const NowLine = memo(function NowLine({ weekDatesStr }: { weekDatesStr: string[] }) {
+const NowLine = memo(function NowLine({ weekDatesStr, mobile }: { weekDatesStr: string[]; mobile: boolean }) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60000);
@@ -68,7 +73,7 @@ const NowLine = memo(function NowLine({ weekDatesStr }: { weekDatesStr: string[]
   return (
     <div
       className="absolute pointer-events-none z-30"
-      style={{ top: `${topPx}px`, left: '12.5%', right: 0 }}
+      style={{ top: `${topPx}px`, left: mobile ? COL_HORA_MOBILE : '12.5%', right: 0 }}
     >
       <div className="absolute left-0 right-0 border-t-2 border-red-400/80" />
       <div className="absolute -left-3 -top-[7px] flex items-center gap-1.5">
@@ -88,11 +93,11 @@ const NowLine = memo(function NowLine({ weekDatesStr }: { weekDatesStr: string[]
 // nenhum estado da página, mas ficava inline no AgendaPage — que re-renderiza a
 // cada tecla digitada em qualquer modal — recriando ~130 elementos toda vez.
 // Com memo (sem props) o React pula a subárvore inteira.
-const HourGridBackground = memo(function HourGridBackground() {
+const HourGridBackground = memo(function HourGridBackground({ mobile }: { mobile: boolean }) {
   return (
     <div className="w-full absolute inset-0 grid grid-rows-[repeat(16,minmax(64px,1fr))] md:grid-rows-[repeat(16,minmax(80px,1fr))]">
       {HOURS.map((h) => (
-        <div key={h} className="border-b border-gray-700/50 w-full grid grid-cols-8 relative">
+        <div key={h} className="border-b border-gray-700/50 w-full grid relative" style={colunasGrade(mobile)}>
           <div className="col-span-1 border-r border-gray-700 p-2">
             <span className="text-xs text-gray-500 block text-right pr-2">
               {h.toString().padStart(2, '0')}:00
@@ -102,10 +107,10 @@ const HourGridBackground = memo(function HourGridBackground() {
             </span>
           </div>
           {/* Linha pontilhada na metade (representa o slot de :30) */}
-          <div className="absolute left-[12.5%] right-0 top-1/2 border-t border-dashed border-gray-700/30 pointer-events-none" />
+          <div className="absolute right-0 top-1/2 border-t border-dashed border-gray-700/30 pointer-events-none" style={{ left: mobile ? COL_HORA_MOBILE : '12.5%' }} />
           {/* Colunas vazias para compor a grade perfeitamente */}
-          {Array.from({ length: 7 }).map((_, i) => (
-            <div key={i} className={`col-span-1 border-r border-gray-700/50 ${i === 6 ? 'border-transparent' : ''}`} />
+          {Array.from({ length: mobile ? 1 : 7 }).map((_, i, arr) => (
+            <div key={i} className={`col-span-1 border-r border-gray-700/50 ${i === arr.length - 1 ? 'border-transparent' : ''}`} />
           ))}
         </div>
       ))}
@@ -168,6 +173,16 @@ export default function AgendaPage() {
   const [selectedDateStr, setSelectedDateStr] = useState<string>(
     getLocalISODate(new Date())
   );
+
+  // Celular: a grade mostra um dia por vez (ver COL_HORA_MOBILE).
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const atualizar = () => setIsMobile(mq.matches);
+    atualizar();
+    mq.addEventListener('change', atualizar);
+    return () => mq.removeEventListener('change', atualizar);
+  }, []);
 
   // Estados do Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -412,6 +427,11 @@ export default function AgendaPage() {
   const dynamicInstruments = contextInstruments.length ? contextInstruments : ["violao", "guitarra"];
 
   const weekDatesStr = useMemo(() => getWeekDates(currentDate), [currentDate]);
+  // Dias desenhados na grade: a semana toda no computador; só o dia escolhido no celular.
+  const colunasVisiveis = useMemo(
+    () => (isMobile ? [weekDatesStr.includes(selectedDateStr) ? selectedDateStr : weekDatesStr[0]] : weekDatesStr),
+    [isMobile, weekDatesStr, selectedDateStr]
+  );
 
   // Folga semanal da data (day_of_week segue getDay(): 0=Dom..6=Sáb)
   const getDayOff = (dateStr: string) =>
@@ -1041,11 +1061,13 @@ export default function AgendaPage() {
             className="flex-1 overflow-y-auto overflow-x-auto relative scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
           >
             {/* Cabeçalho dos Dias (Sticky, dentro do container para compensar barra de rolagem) */}
-            <div className="sticky top-0 z-40 grid grid-cols-8 border-b border-gray-700 bg-gray-800/95 shadow-sm min-w-[560px]">
-              {/* Coluna de Horários (vazia no topo) */}
+            <div className="sticky top-0 z-40 grid border-b border-gray-700 bg-gray-800/95 shadow-sm md:min-w-[560px]" style={{ gridTemplateColumns: isMobile ? 'repeat(7, minmax(0, 1fr))' : 'repeat(8, minmax(0, 1fr))' }}>
+              {/* Coluna de Horários (vazia no topo); no celular o cabeçalho é só a faixa dos 7 dias */}
+              {!isMobile && (
               <div className="col-span-1 border-r border-gray-700 p-2 lg:p-3 flex items-end justify-center">
                 <span className="text-xs text-gray-500 font-medium tracking-wider">GMT-3</span>
               </div>
+              )}
 
               {/* Dias da semana */}
               {weekDatesStr.map((dateStr, idx) => {
@@ -1072,14 +1094,14 @@ export default function AgendaPage() {
               })}
             </div>
 
-            <div className="h-[1024px] md:h-[1280px] relative w-full min-w-[560px]">
+            <div className="h-[1024px] md:h-[1280px] relative w-full md:min-w-[560px]">
               {/* Linhas de Horas no background — com marcação de meia-hora */}
-              <HourGridBackground />
+              <HourGridBackground mobile={isMobile} />
 
               {/* Aulas renderizadas por cima */}
-              <div className="absolute inset-0 grid grid-cols-8 pointer-events-none">
+              <div className="absolute inset-0 grid pointer-events-none" style={colunasGrade(isMobile)}>
                 <div className="col-span-1" />
-                {weekDatesStr.map((dateStr) => {
+                {colunasVisiveis.map((dateStr) => {
                   const dayLessons = weeklyLessons.filter(l => l.date === dateStr);
                   const localRealToday = getLocalISODate(new Date());
                   const isRealTodayString = dateStr === localRealToday;
@@ -1262,7 +1284,7 @@ export default function AgendaPage() {
               </div>
 
               {/* Linha "agora" isolada em componente próprio — só ela re-renderiza por minuto */}
-              <NowLine weekDatesStr={weekDatesStr} />
+              <NowLine weekDatesStr={colunasVisiveis} mobile={isMobile} />
             </div>
           </div>
         </div>
