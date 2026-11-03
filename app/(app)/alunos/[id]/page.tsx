@@ -271,7 +271,16 @@ export default function FichaAlunoPage() {
   const [ficha, setFicha] = useState<FichaAluno | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [aba, setAba] = useState<Aba>("geral");
+  const [aba, setAbaState] = useState<Aba>("geral");
+  // A aba fica no #hash da URL: F5 continua na mesma aba em vez de voltar à Visão geral.
+  const setAba = useCallback((a: Aba) => {
+    setAbaState(a);
+    try { window.history.replaceState(null, "", "#" + a); } catch {}
+  }, []);
+  useEffect(() => {
+    const h = window.location.hash.slice(1) as Aba;
+    if (ABAS.some(t => t.id === h)) setAbaState(h);
+  }, []);
   const [filtroStatus, setFiltroStatus] = useState("todas");
   const [filtroPeriodo, setFiltroPeriodo] = useState("todas");
 
