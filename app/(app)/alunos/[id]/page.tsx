@@ -949,7 +949,6 @@ export default function FichaAlunoPage() {
         <Painel titulo={`Faturas (${ficha.faturas.length})`} acao={<Link href="/financeiro" className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400">Abrir o Financeiro</Link>}>
           <p className="text-xs text-gray-600 mb-3">Dados oficiais do Financeiro. Para receber uma fatura, use "Marcar como paga"; renegociar ou excluir continua na tela Financeiro.</p>
           {baixaMsg && <p role="status" className="mb-3 text-sm text-green-400 font-medium">{baixaMsg}</p>}
-          {ficha.faturas.length ? <ul className="divide-y divide-gray-800">{ficha.faturas.map(f => <LinhaFatura key={f.id} f={f} onBaixa={x => { setBaixaAlvo(x); setBaixaMetodo("pix"); setBaixaData(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })); setBaixaObs(""); setBaixaErro(null); setBaixaMsg(null); }} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma fatura registrada.</p>}
           {baixaAlvo && (
             <div className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3">
               <p className="text-sm font-bold text-white">Marcar como paga: {fmtMoeda(baixaAlvo.amount)} · vence {fmtData(baixaAlvo.duedate)}</p>
@@ -974,6 +973,7 @@ export default function FichaAlunoPage() {
               </div>
             </div>
           )}
+          {ficha.faturas.length ? <ul className="divide-y divide-gray-800">{ficha.faturas.map(f => <LinhaFatura key={f.id} f={f} onBaixa={x => { setBaixaAlvo(x); setBaixaMetodo("pix"); setBaixaData(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })); setBaixaObs(""); setBaixaErro(null); setBaixaMsg(null); }} />)}</ul> : <p className="text-sm text-gray-500">Nenhuma fatura registrada.</p>}
         </Painel>
       )}
 
