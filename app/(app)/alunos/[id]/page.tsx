@@ -283,7 +283,10 @@ export default function FichaAlunoPage() {
   }, []);
   // A aba escolhida fica centralizada na barra de abas (no celular a barra rola de lado).
   useEffect(() => {
-    document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+    // Rola só a barra de abas: scrollIntoView também empurrava a página inteira para o lado no celular.
+    const tab = document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    const barra = tab?.closest<HTMLElement>('[role="tablist"]');
+    if (tab && barra) barra.scrollTo({ left: tab.offsetLeft - (barra.clientWidth - tab.offsetWidth) / 2, behavior: "smooth" });
   }, [aba]);
   const [filtroStatus, setFiltroStatus] = useState("todas");
   const [filtroPeriodo, setFiltroPeriodo] = useState("todas");
@@ -657,7 +660,7 @@ export default function FichaAlunoPage() {
       </div>
 
       {/* Abas */}
-      <div className="shrink-0 flex gap-1 border-b border-gray-800 overflow-x-auto" role="tablist">
+      <div className="relative shrink-0 flex gap-1 border-b border-gray-800 overflow-x-auto" role="tablist">
         {ABAS.map(t => (
           <button key={t.id} role="tab" aria-selected={aba === t.id} onClick={() => setAba(t.id)}
             className={`px-4 py-3 text-xs font-black uppercase tracking-widest whitespace-nowrap border-b-2 transition-colors ${aba === t.id ? "border-amber-500 text-amber-500" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
