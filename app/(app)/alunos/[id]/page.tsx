@@ -99,7 +99,7 @@ function Cartao({ titulo, valor, detalhe, destaque }: { titulo: string; valor: R
 
 function Painel({ titulo, children, acao }: { titulo: string; children: React.ReactNode; acao?: React.ReactNode }) {
   return (
-    <section className="rounded-3xl border border-gray-800 bg-gray-800/40 ring-1 ring-white/5 p-5">
+    <section className="min-w-0 max-w-full rounded-3xl border border-gray-800 bg-gray-800/40 ring-1 ring-white/5 p-5">
       <div className="flex items-center justify-between gap-3 mb-4">
         <h2 className="text-xs font-black uppercase tracking-widest text-gray-400">{titulo}</h2>
         {acao}
@@ -281,6 +281,10 @@ export default function FichaAlunoPage() {
     const h = window.location.hash.slice(1) as Aba;
     if (ABAS.some(t => t.id === h)) setAbaState(h);
   }, []);
+  // A aba escolhida fica centralizada na barra de abas (no celular a barra rola de lado).
+  useEffect(() => {
+    document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [aba]);
   const [filtroStatus, setFiltroStatus] = useState("todas");
   const [filtroPeriodo, setFiltroPeriodo] = useState("todas");
 
@@ -792,7 +796,7 @@ export default function FichaAlunoPage() {
                   <p className="text-sm text-gray-500">Você ainda não tem trilhas. <Link href="/trilhas" className="text-amber-500 hover:text-amber-400 font-bold">Criar uma trilha</Link></p>
                 ) : (
                   <div className="flex flex-wrap items-center gap-3">
-                    <select value={trilhaEscolhida} onChange={e => setTrilhaEscolhida(e.target.value)} aria-label="Escolher trilha" className="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-sm font-bold text-white min-w-[14rem]">
+                    <select value={trilhaEscolhida} onChange={e => setTrilhaEscolhida(e.target.value)} aria-label="Escolher trilha" className="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-sm font-bold text-white min-w-0 w-full sm:w-auto sm:min-w-[14rem]">
                       <option value="">Escolha uma trilha</option>
                       {trilhasDisp.map(t => <option key={t.id} value={t.id}>{t.name}{t.level ? ` · ${t.level}` : ""}</option>)}
                     </select>
@@ -817,18 +821,20 @@ export default function FichaAlunoPage() {
                         <h3 className="text-xs font-black uppercase tracking-widest text-amber-500 mb-1">{m.module_title}</h3>
                         <ul className="divide-y divide-gray-800">
                           {m.itens.map((it, ii) => (
-                            <li key={it.id} className="py-2.5 flex items-start gap-2">
-                              <div className="min-w-0 flex-1">
+                            <li key={it.id} className="py-2.5 flex flex-wrap sm:flex-nowrap items-start gap-2">
+                              <div className="min-w-0 w-full sm:w-auto sm:flex-1">
                                 <p className={`text-sm font-bold break-words ${it.status === "concluido" ? "text-gray-500 line-through" : "text-white"}`}>{it.title}</p>
                                 <p className="text-xs text-gray-500">{ROTULO_DIFICULDADE[it.difficulty]}{it.competency ? ` · ${it.competency}` : ""}{it.objective ? ` · ${it.objective}` : ""}</p>
                               </div>
+                              <div className="flex items-center gap-1 max-w-full">
                               <select value={it.status} onChange={e => agirPlano(alterarStatusEstudo(aluno.id, it.id, e.target.value as StatusEstudo))} aria-label={`Status de ${it.title}`}
-                                className={`bg-gray-900 border rounded-xl px-2 py-1.5 text-xs font-bold ${it.status === "concluido" ? "border-green-500/40 text-green-400" : it.status === "em_revisao" ? "border-violet-500/40 text-violet-400" : it.status === "em_andamento" ? "border-sky-500/40 text-sky-400" : "border-gray-700 text-gray-300"}`}>
+                                className={`min-w-0 bg-gray-900 border rounded-xl px-2 py-1.5 text-xs font-bold ${it.status === "concluido" ? "border-green-500/40 text-green-400" : it.status === "em_revisao" ? "border-violet-500/40 text-violet-400" : it.status === "em_andamento" ? "border-sky-500/40 text-sky-400" : "border-gray-700 text-gray-300"}`}>
                                 {STATUS_ESTUDO.map(s => <option key={s} value={s}>{ROTULO_STATUS[s]}</option>)}
                               </select>
                               <button disabled={ii === 0} onClick={() => agirPlano(moverItemAluno(aluno.id, it.id, -1))} aria-label="Subir" className="p-1.5 rounded-lg text-gray-500 hover:text-white disabled:opacity-30"><ArrowUp className="w-4 h-4" /></button>
                               <button disabled={ii === m.itens.length - 1} onClick={() => agirPlano(moverItemAluno(aluno.id, it.id, 1))} aria-label="Descer" className="p-1.5 rounded-lg text-gray-500 hover:text-white disabled:opacity-30"><ArrowDown className="w-4 h-4" /></button>
                               <button onClick={() => { if (window.confirm("Remover este conteúdo do plano deste aluno?")) agirPlano(removerItemAluno(aluno.id, it.id)); }} aria-label="Remover" className="p-1.5 rounded-lg text-gray-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                              </div>
                             </li>
                           ))}
                         </ul>
