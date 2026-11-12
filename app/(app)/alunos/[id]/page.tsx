@@ -367,6 +367,8 @@ export default function FichaAlunoPage() {
   const [acaoSemRepo, setAcaoSemRepo] = useState(false);
   const abrirAcaoAula = (aula: FichaAula, tipo: "remarcar" | "cancelar") => {
     setAcaoAula({ aula, tipo }); setAcaoSemRepo(false); setAcaoData(""); setAcaoInicio(aula.startTime?.slice(0, 5) ?? ""); setAcaoErro(null); setAcaoMsg(null);
+    // O painel de confirmação nasce no fim da lista; com várias aulas ele ficava fora da tela e o clique parecia não fazer nada.
+    setTimeout(() => document.getElementById("painel-acao-aula")?.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
   };
   const confirmarAcaoAula = async () => {
     if (!acaoAula) return;
@@ -389,7 +391,7 @@ export default function FichaAlunoPage() {
     <>
       {acaoMsg && <p role="status" className="mt-3 text-sm text-green-400 font-medium">{acaoMsg}</p>}
       {acaoAula && (
-        <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+        <div id="painel-acao-aula" className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
           <p className="text-sm font-bold text-white">
             {acaoAula.tipo === "cancelar" ? "Cancelar" : "Remarcar"} a aula de {fmtData(acaoAula.aula.date)} às {acaoAula.aula.startTime}
           </p>
