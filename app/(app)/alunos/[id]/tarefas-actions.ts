@@ -11,7 +11,7 @@ const SEM_TABELA = 'As tarefas ainda não foram ativadas no banco.';
 const COL_TAREFA = 'id, idstudent_fk, title, description, due_date, status, completed_at, created_at';
 const COL_ENTREGA = 'id, task_fk, kind, note, url, file_name, mime_type, size_bytes, feedback, feedback_at, created_at';
 
-export type TarefaCompleta = Tarefa & { entregas: Entrega[]; materiais: { id: string; title: string }[]; estado: StatusTarefa };
+export type TarefaCompleta = Tarefa & { entregas: Entrega[]; materiais: { id: string; title: string }[]; estado: StatusTarefa; /** Nota privada "para a próxima aula": só o professor enxerga. */ proxima_aula?: string };
 export type TarefaParaAcao = TarefaCompleta & { aluno: string };
 
 async function materiaisDasTarefas(supabase: any, userId: string, taskIds: string[]) {
@@ -71,7 +71,14 @@ export async function fetchTarefas(idstudent: string): Promise<
     if (t.error || e.error) { console.error('Tarefas: erro ao buscar:', (t.error || e.error)?.message); return { ok: false, error: 'Não foi possível carregar as tarefas.' }; }
     const tarefas = (t.data ?? []) as Tarefa[];
     const mats = await materiaisDasTarefas(supabase, dbUser.idusers, tarefas.map(x => x.id));
-    return { ok: true, disponivel: true, tarefas: montar(tarefas, (e.data ?? []) as Entrega[], mats), biblioteca: (b.data ?? []) as { id: string; title: string }[] };
+    // Nota privada do professor (tabela à parte, sem acesso do aluno). Se a tabela ainda não existir, segue sem ela.
+    const notas = new Map<string, string>();
+    if (tarefas.length) {
+      const { data: ns } = await supabase.from('task_teacher_note').select('task_fk, note').eq('idusers_fk', dbUser.idusers).in('task_fk', tarefas.map(x => x.id));
+      for (const n of ns ?? []) notas.set(n.task_fk as string, n.note as string);
+    }
+    const completas = montar(tarefas, (e.data ?? []) as Entrega[], mats).map(x => ({ ...x, proxima_aula: notas.get(x.id) }));
+    return { ok: true, disponivel: true, tarefas: completas, biblioteca: (b.data ?? []) as { id: string; title: string }[] };
   } catch (err: any) { console.error('Tarefas: erro inesperado:', err?.message || err); return { ok: false, error: ERRO }; }
 }
 
@@ -99,6 +106,11 @@ export async function criarTarefa(idstudents: string[], bruto: Record<string, un
     for (const t of criadas ?? []) {
       const mats = await compartilharApoio(supabase, dbUser.idusers, t.idstudent_fk as string, materialIds);
       if (mats.length) await supabase.from('task_material').insert(mats.map(m => ({ task_fk: t.id, material_fk: m, idusers_fk: dbUser.idusers })));
+      const notaPrivada = String(proximaAula ?? '').trim().slice(0, 1000);
+      if (notaPrivada) {
+        const { error: eNota } = await supabase.from('task_teacher_note').insert({ task_fk: t.id, idusers_fk: dbUser.idusers, note: notaPrivada });
+        if (eNota && !tabelaAusente(eNota)) console.error('Tarefas: erro ao gravar a nota para a próxima aula:', eNota.message);
+      }
       await avisarAlunoDaTarefa(supabase, {
         teacherId: dbUser.idusers, studentId: t.idstudent_fk as string, title: 'Nova tarefa',
         message: `Seu professor passou a tarefa "${v.valor.title}".${prazoPorExtenso(v.valor.due_date)}`,
@@ -109,7 +121,7 @@ export async function criarTarefa(idstudents: string[], bruto: Record<string, un
   } catch (err: any) { console.error('Tarefas: erro inesperado:', err?.message || err); return { ok: false, error: ERRO }; }
 }
 
-export async function editarTarefa(idstudent: string, taskId: string, bruto: Record<string, unknown>, materialIds: string[]): Promise<{ ok: true } | Falha> {
+export async function editarTarefa(idstudent: string, taskId: string, bruto: Record<string, unknown>, materialIds: string[], proximaAula?: string): Promise<{ ok: true } | Falha> {
   try {
     if (!UUID.test(taskId)) return { ok: false, error: 'Tarefa não encontrada.' };
     const v = limparTarefa(bruto); if (!v.ok) return v;
@@ -127,6 +139,14 @@ export async function editarTarefa(idstudent: string, taskId: string, bruto: Rec
     const remover = [...tem].filter(a => !alvo.has(a));
     if (adicionar.length) await supabase.from('task_material').insert(adicionar.map(m => ({ task_fk: taskId, material_fk: m, idusers_fk: dbUser.idusers })));
     if (remover.length) await supabase.from('task_material').delete().eq('task_fk', taskId).eq('idusers_fk', dbUser.idusers).in('material_fk', remover);
+
+    if (proximaAula !== undefined) {
+      const nota = proximaAula.trim().slice(0, 1000);
+      const r = nota
+        ? await supabase.from('task_teacher_note').upsert({ task_fk: taskId, idusers_fk: dbUser.idusers, note: nota }, { onConflict: 'task_fk' })
+        : await supabase.from('task_teacher_note').delete().eq('task_fk', taskId).eq('idusers_fk', dbUser.idusers);
+      if (r.error && !tabelaAusente(r.error)) console.error('Tarefas: erro ao gravar a nota para a próxima aula:', r.error.message);
+    }
     return { ok: true };
   } catch (err: any) { console.error('Tarefas: erro inesperado:', err?.message || err); return { ok: false, error: ERRO }; }
 }

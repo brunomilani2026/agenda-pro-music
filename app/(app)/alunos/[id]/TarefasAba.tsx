@@ -30,9 +30,9 @@ type ProximaAula = { date: string; startTime: string } | null;
 type Form = { title: string; description: string; links: string[]; proxima_aula: string; due_date: string; materiais: Set<string>; modo: "proxima" | "data" | "nenhum" };
 const formVazio = (proxima: ProximaAula): Form => ({ title: "", description: "", links: [""], proxima_aula: "", due_date: "", materiais: new Set(), modo: proxima ? "proxima" : "nenhum" });
 // Ao editar, os links que estavam dentro da descrição vão para o campo "Links".
-const formDaTarefa = (t: { title: string; description: string | null; due_date: string | null; materiais: { id: string }[] }): Form => {
+const formDaTarefa = (t: { title: string; description: string | null; due_date: string | null; materiais: { id: string }[]; proxima_aula?: string }): Form => {
   const d = dividirDescricao(t.description);
-  return { title: t.title, description: d.texto, links: d.links.length ? d.links : [""], proxima_aula: "", due_date: t.due_date ?? "", materiais: new Set(t.materiais.map(m => m.id)), modo: t.due_date ? "data" : "nenhum" };
+  return { title: t.title, description: d.texto, links: d.links.length ? d.links : [""], proxima_aula: t.proxima_aula ?? "", due_date: t.due_date ?? "", materiais: new Set(t.materiais.map(m => m.id)), modo: t.due_date ? "data" : "nenhum" };
 };
 
 function Painel({ titulo, acao, children }: { titulo: string; acao?: React.ReactNode; children: React.ReactNode }) {
@@ -206,7 +206,7 @@ export default function TarefasAba({ alunoId, proximaAula }: { alunoId: string; 
               <li key={t.id} className="rounded-2xl border border-gray-800 bg-gray-900/40 p-4 space-y-3">
                 {editando === t.id ? (
                   <FormTarefa inicial={formDaTarefa(t)} biblioteca={biblioteca} proximaAula={proximaAula} rotulo="Salvar" onCancelar={() => setEditando(null)}
-                    onSalvar={async f => { const r = await editarTarefa(alunoId, t.id, { title: f.title, description: f.description, due_date: f.due_date }, [...f.materiais]); if (!r.ok) return r.error; setEditando(null); await carregar(); return null; }} />
+                    onSalvar={async f => { const r = await editarTarefa(alunoId, t.id, { title: f.title, description: f.description, due_date: f.due_date }, [...f.materiais], f.proxima_aula); if (!r.ok) return r.error; setEditando(null); await carregar(); return null; }} />
                 ) : (
                   <>
                     <div className="flex items-start gap-3">
@@ -217,6 +217,12 @@ export default function TarefasAba({ alunoId, proximaAula }: { alunoId: string; 
                       <span className={`shrink-0 inline-flex px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${COR[t.estado]}`}>{ROTULO_STATUS_TAREFA[t.estado]}</span>
                     </div>
                     <DescricaoComLinks descricao={t.description} />
+                    {t.proxima_aula && (
+                      <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Para a próxima aula · só você vê</p>
+                        <p className="text-sm text-gray-100 whitespace-pre-wrap break-words mt-0.5">{t.proxima_aula}</p>
+                      </div>
+                    )}
                     {t.materiais.length > 0 && <p className="text-xs text-gray-500">Apoio: {t.materiais.map(m => m.title).join(", ")}</p>}
 
                     {t.entregas.length > 0 && (
