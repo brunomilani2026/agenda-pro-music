@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 
@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: "Agenda Pro Music",
   description: "Sistema de agendamento de aulas de música",
 };
+
+// Largura fixa do celular: sem isso o iPhone dá zoom ao tocar num campo (filtros, busca) e a tela fica ampliada e "bagunçada".
+export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1 };
 
 export default function RootLayout({
   children,

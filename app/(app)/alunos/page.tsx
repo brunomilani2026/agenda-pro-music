@@ -88,7 +88,7 @@ export default function AlunosPage() {
     [students]
   );
   const filtroAtivo = haFiltroAtivo(filtros);
-  const campoCls = "w-full rounded-xl bg-gray-900/60 border border-gray-700 px-3 py-2 text-xs font-bold text-white focus:border-amber-500 outline-none";
+  const campoCls = "w-full min-w-0 rounded-xl bg-gray-900/60 border border-gray-700 px-3 py-2 text-xs font-bold text-white focus:border-amber-500 outline-none";
 
   const handleSendNotification = async (title: string, message: string, sendEmail: boolean) => {
     if (notifyTarget?.student) {
