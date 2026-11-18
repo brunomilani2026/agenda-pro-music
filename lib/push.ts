@@ -1,4 +1,4 @@
-import webpush from 'web-push';
+import * as webpush from 'web-push';
 import { createAdminClient } from '@/lib/supabase/server';
 
 // Envio de avisos no celular (Web Push) para o aluno dono da notificação.
