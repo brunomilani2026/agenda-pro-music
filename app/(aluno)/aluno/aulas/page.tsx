@@ -413,8 +413,8 @@ export default function AlunoAulasPage() {
 
       {/* Modal - Nova / Remarcar / Cancelar / Reposição */}
       {(modalType === 'new' || modalType === 'cancel' || modalType === 'reschedule' || modalType === 'reposicao') && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in overflow-hidden touch-pan-y overscroll-contain">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col min-w-0 overflow-hidden">
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white rounded-t-3xl shrink-0">
@@ -432,7 +432,7 @@ export default function AlunoAulasPage() {
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y p-6 space-y-5">
               {selectedLesson && (
                 <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-500">
                   Aula atual: <span className="text-gray-900 font-bold">{selectedLesson.date?.split('-').reverse().join('/')} às {selectedLesson.startTime}</span>
@@ -445,22 +445,22 @@ export default function AlunoAulasPage() {
                     <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wider ml-1 group-focus-within:text-amber-600 transition-colors">Data desejada</label>
                     <input type="date" value={formData.date} min={getLocalISODate()}
                       onChange={e => setFormData({ ...formData, date: e.target.value })}
-                      className="w-full bg-white border border-gray-300 rounded-xl p-3.5 text-gray-900 focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all hover:bg-gray-50 shadow-sm" />
+                      className="block w-full min-w-0 max-w-full bg-white border border-gray-300 rounded-xl p-3.5 text-gray-900 focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all hover:bg-gray-50 shadow-sm" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="group">
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
+                    <div className="group min-w-0">
                       <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wider ml-1 group-focus-within:text-amber-600 transition-colors">Início</label>
                       <select value={formData.startTime}
                         onChange={e => setFormData({ ...formData, startTime: e.target.value, endTime: calculateEndTime(e.target.value) })}
-                        className="w-full bg-white border border-gray-300 rounded-xl p-3.5 text-gray-900 focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all hover:bg-gray-50 shadow-sm">
+                        className="block w-full min-w-0 max-w-full bg-white border border-gray-300 rounded-xl p-3.5 text-gray-900 focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all hover:bg-gray-50 shadow-sm">
                         <option value="">Escolha</option>
                         {Array.from({ length: 28 }, (_, i) => `${String(Math.floor(i / 2) + 8).padStart(2, '0')}:${i % 2 ? '30' : '00'}`).map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
-                    <div className="group">
+                    <div className="group min-w-0">
                       <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wider ml-1">Fim (50min)</label>
                       <input type="time" step={1800} readOnly value={formData.endTime}
-                        className="w-full bg-gray-100 border border-gray-200 rounded-xl p-3.5 text-gray-500 outline-none cursor-not-allowed shadow-inner" />
+                        className="block w-full min-w-0 max-w-full bg-gray-100 border border-gray-200 rounded-xl p-3.5 text-gray-500 outline-none cursor-not-allowed shadow-inner" />
                     </div>
                   </div>
                   <p className="text-[10px] text-gray-400 -mt-2 ml-1">Horário de Brasília (GMT-3)</p>
