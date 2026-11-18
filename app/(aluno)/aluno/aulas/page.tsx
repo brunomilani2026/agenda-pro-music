@@ -222,7 +222,7 @@ export default function AlunoAulasPage() {
             data.upcoming.map((lesson) => {
               const awaitingPayment = lesson.status === 'aguardando_pagamento';
               return (
-                <div key={lesson.id} className={`flex items-center justify-between p-5 hover:bg-gray-700/20 transition-colors ${awaitingPayment ? 'border-l-4 border-blue-500 bg-blue-500/5' : ''}`}>
+                <div key={lesson.id} className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 hover:bg-gray-700/20 transition-colors ${awaitingPayment ? 'border-l-4 border-blue-500 bg-blue-500/5' : ''}`}>
                   <div className="flex items-center gap-4">
                     <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center border ${awaitingPayment ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
                       <span className="text-sm font-black">{lesson.date.split('-')[2]}</span>
@@ -251,7 +251,7 @@ export default function AlunoAulasPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {/* Sala virtual do professor: mesma para todas as aulas. Fica aqui
                         para o link continuar acessível se o e-mail de lembrete falhar. */}
                     {!awaitingPayment && data.meetLink && (
@@ -261,17 +261,17 @@ export default function AlunoAulasPage() {
                       </a>
                     )}
                     {!awaitingPayment && lesson.canReschedule && (
-                      <button onClick={() => openModal('reschedule', lesson)} className="p-2 text-gray-500 hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors" title="Remarcar">
-                        <RefreshCw className="w-4 h-4" />
+                      <button onClick={() => openModal('reschedule', lesson)} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-300 hover:text-amber-400 border border-gray-600 hover:border-amber-500/40 hover:bg-amber-500/10 rounded-lg transition-colors" title="Remarcar">
+                        <RefreshCw className="w-4 h-4" /> Remarcar
                       </button>
                     )}
                     {lesson.canCancel ? (
-                      <button onClick={() => openModal('cancel', lesson)} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors" title="Cancelar">
-                        <XCircle className="w-4 h-4" />
+                      <button onClick={() => openModal('cancel', lesson)} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-300 hover:text-red-400 border border-gray-600 hover:border-red-500/40 hover:bg-red-500/10 rounded-lg transition-colors" title="Cancelar">
+                        <XCircle className="w-4 h-4" /> Cancelar
                       </button>
                     ) : (
-                      <span className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-gray-500 bg-gray-700/30 border border-gray-700 rounded-full" title="Cancelamentos e remarcações exigem aviso prévio de 6 horas.">
-                        &lt; 6h
+                      <span className="px-3 py-2 text-[11px] font-bold text-gray-400 bg-gray-700/30 border border-gray-700 rounded-lg" title="Cancelamentos e remarcações exigem aviso prévio de 6 horas.">
+                        Faltam menos de 6h: não dá mais para cancelar ou remarcar
                       </span>
                     )}
                   </div>
