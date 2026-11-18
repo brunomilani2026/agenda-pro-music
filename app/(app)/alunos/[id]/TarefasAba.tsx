@@ -100,7 +100,7 @@ function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCanc
         <label className="md:col-span-2 block">
           <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Para a próxima aula (só para mim, o aluno não vê)</span>
           <textarea className={`${campo} mt-1`} rows={2} placeholder="Ex.: Na próxima aula, estudar Trem das Onze" value={f.proxima_aula} maxLength={1000} onChange={e => setF({ ...f, proxima_aula: e.target.value })} aria-label="Para a próxima aula (só para mim)" />
-          {f.proxima_aula.trim() && (
+          {(
             <label className="mt-2 flex items-start gap-2 text-sm text-gray-200 cursor-pointer">
               <input type="checkbox" checked={f.preparar} onChange={e => setF({ ...f, preparar: e.target.checked })} className="mt-0.5 w-4 h-4 accent-amber-500" />
               <span><strong className="text-white">Preciso preparar antes</strong> (planejar, escrever ou montar a aula) — vira uma tarefa minha no Meu Dia. Desmarcado = só saber o assunto.</span>
