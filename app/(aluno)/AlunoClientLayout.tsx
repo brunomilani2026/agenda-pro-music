@@ -15,7 +15,7 @@ interface AlunoClientLayoutProps {
 
 export default function AlunoClientLayout({ children, user, student, initialUnreadCount }: AlunoClientLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false); // menu abre com os nomes; o botão do topo ainda recolhe
 
   // Nome do registro de aluno tem prioridade sobre o `fname` do usuário,
   // pois é o nome que o aluno mantém atualizado no perfil dele.

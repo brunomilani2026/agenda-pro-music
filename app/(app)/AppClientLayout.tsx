@@ -20,7 +20,7 @@ export default function AppClientLayout({
   children, user, initialData, notificationScope, initialUnreadCount,
 }: AppClientLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false); // menu abre com os nomes; o botão do topo ainda recolhe
 
   return (
     <AppProvider usertype={user?.usertype} initialData={initialData}>

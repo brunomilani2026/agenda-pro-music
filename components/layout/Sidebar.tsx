@@ -197,7 +197,8 @@ export default function Sidebar({ open, onClose, user, isCollapsed = false }: Si
   const isAdmin = user?.usertype === 'admin';
   const navGroups = isAdmin ? adminGroups : professorGroups;
 
-  const sidebarContent = (
+  // No celular o menu abre sempre expandido (ícone + nome); só o menu fixo do computador pode ficar recolhido.
+  const renderSidebar = (isCollapsed: boolean) => (
     <div className={`flex h-full flex-col bg-gray-800 text-white relative overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
       {/* Logo */}
       <div className={`relative z-10 flex h-16 items-center border-b border-gray-700 transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-6'}`}>
@@ -355,7 +356,7 @@ export default function Sidebar({ open, onClose, user, isCollapsed = false }: Si
     <>
       {/* Sidebar Desktop - fixa */}
       <aside className={`hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
-        {sidebarContent}
+        {renderSidebar(isCollapsed)}
       </aside>
 
       {/* Sidebar Mobile - overlay */}
@@ -368,7 +369,7 @@ export default function Sidebar({ open, onClose, user, isCollapsed = false }: Si
           />
           {/* Drawer */}
           <aside className="fixed inset-y-0 left-0 z-[60] w-64 lg:hidden animate-slide-in">
-            {sidebarContent}
+            {renderSidebar(false)}
           </aside>
         </>
       )}
