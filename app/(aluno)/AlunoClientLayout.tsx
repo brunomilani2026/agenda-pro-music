@@ -4,6 +4,7 @@ import { useState } from "react";
 import AlunoSidebar from "@/components/layout/AlunoSidebar";
 import Topbar from "@/components/layout/Topbar";
 import InstalarApp from "@/components/InstalarApp";
+import AtivarAvisos from "@/components/AtivarAvisos";
 import { User } from "@/types/database.types";
 
 interface AlunoClientLayoutProps {
@@ -44,6 +45,7 @@ export default function AlunoClientLayout({ children, user, student, initialUnre
         />
         <main className="flex-1 p-4 md:p-6 bg-gray-900 overflow-y-auto custom-scrollbar">
           <InstalarApp />
+          <AtivarAvisos />
           {children}
         </main>
       </div>
