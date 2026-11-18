@@ -475,9 +475,9 @@ export default function RegisterPage() {
                     className="w-full bg-gray-950 border border-gray-800 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/5 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-600 outline-none transition-all appearance-none"
                   >
                     <option value="" disabled selected>Selecione seu instrumento</option>
-                    {instruments.map((inst) => (
-                      <option key={inst.id} className="bg-gray-900" value={inst.name}>
-                        {inst.name}
+                    {["Banjo", "Cavaquinho", "Violão", "Banjo/Cavaquinho"].map((nome) => (
+                      <option key={nome} className="bg-gray-900" value={nome}>
+                        {nome}
                       </option>
                     ))}
                   </select>

@@ -222,9 +222,9 @@ export default function StudentRegistrationPage() {
                     className="w-full bg-gray-950 border border-gray-800 focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/5 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-600 outline-none transition-all appearance-none"
                     >
                     <option value="" disabled selected>Selecione seu instrumento</option>
-                    {instruments.map(inst => (
-                        <option key={inst} value={inst.charAt(0).toUpperCase() + inst.slice(1)}>
-                        {inst.charAt(0).toUpperCase() + inst.slice(1)}
+                    {["Banjo", "Cavaquinho", "Violão", "Banjo/Cavaquinho"].map((nome) => (
+                        <option key={nome} value={nome}>
+                        {nome}
                         </option>
                     ))}
                     </select>
