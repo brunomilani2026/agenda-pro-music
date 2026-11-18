@@ -27,12 +27,12 @@ const campo = "w-full bg-gray-800/60 border border-gray-700 focus:border-amber-5
 
 type ProximaAula = { date: string; startTime: string } | null;
 // Prazo: "proxima" = data da próxima aula agendada do aluno (padrão); "data" = escolhida à mão; "nenhum".
-type Form = { title: string; description: string; links: string[]; proxima_aula: string; due_date: string; materiais: Set<string>; modo: "proxima" | "data" | "nenhum" };
-const formVazio = (proxima: ProximaAula): Form => ({ title: "", description: "", links: [""], proxima_aula: "", due_date: "", materiais: new Set(), modo: proxima ? "proxima" : "nenhum" });
+type Form = { title: string; description: string; links: string[]; proxima_aula: string; preparar: boolean; due_date: string; materiais: Set<string>; modo: "proxima" | "data" | "nenhum" };
+const formVazio = (proxima: ProximaAula): Form => ({ title: "", description: "", links: [""], proxima_aula: "", preparar: false, due_date: "", materiais: new Set(), modo: proxima ? "proxima" : "nenhum" });
 // Ao editar, os links que estavam dentro da descrição vão para o campo "Links".
-const formDaTarefa = (t: { title: string; description: string | null; due_date: string | null; materiais: { id: string }[]; proxima_aula?: string }): Form => {
+const formDaTarefa = (t: { title: string; description: string | null; due_date: string | null; materiais: { id: string }[]; proxima_aula?: string; preparar?: boolean }): Form => {
   const d = dividirDescricao(t.description);
-  return { title: t.title, description: d.texto, links: d.links.length ? d.links : [""], proxima_aula: t.proxima_aula ?? "", due_date: t.due_date ?? "", materiais: new Set(t.materiais.map(m => m.id)), modo: t.due_date ? "data" : "nenhum" };
+  return { title: t.title, description: d.texto, links: d.links.length ? d.links : [""], proxima_aula: t.proxima_aula ?? "", preparar: t.preparar ?? false, due_date: t.due_date ?? "", materiais: new Set(t.materiais.map(m => m.id)), modo: t.due_date ? "data" : "nenhum" };
 };
 
 function Painel({ titulo, acao, children }: { titulo: string; acao?: React.ReactNode; children: React.ReactNode }) {
@@ -100,6 +100,12 @@ function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCanc
         <label className="md:col-span-2 block">
           <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Para a próxima aula (só para mim, o aluno não vê)</span>
           <textarea className={`${campo} mt-1`} rows={2} placeholder="Ex.: Na próxima aula, estudar Trem das Onze" value={f.proxima_aula} maxLength={1000} onChange={e => setF({ ...f, proxima_aula: e.target.value })} aria-label="Para a próxima aula (só para mim)" />
+          {f.proxima_aula.trim() && (
+            <label className="mt-2 flex items-start gap-2 text-sm text-gray-200 cursor-pointer">
+              <input type="checkbox" checked={f.preparar} onChange={e => setF({ ...f, preparar: e.target.checked })} className="mt-0.5 w-4 h-4 accent-amber-500" />
+              <span><strong className="text-white">Preciso preparar antes</strong> (planejar, escrever ou montar a aula) — vira uma tarefa minha no Meu Dia. Desmarcado = só saber o assunto.</span>
+            </label>
+          )}
         </label>
       )}
       <fieldset className="rounded-2xl border border-gray-800 p-3 md:col-span-2 space-y-2">
@@ -195,7 +201,7 @@ export default function TarefasAba({ alunoId, proximaAula }: { alunoId: string; 
         {criando && (
           <div className="mb-4">
             <FormTarefa inicial={formVazio(proximaAula)} biblioteca={biblioteca} proximaAula={proximaAula} rotulo="Criar tarefa" onCancelar={() => setCriando(false)}
-              onSalvar={async f => { const r = await criarTarefa([alunoId], { title: f.title, description: f.description, due_date: f.due_date }, [...f.materiais], f.proxima_aula); if (!r.ok) return r.error; setCriando(false); await carregar(); return null; }} />
+              onSalvar={async f => { const r = await criarTarefa([alunoId], { title: f.title, description: f.description, due_date: f.due_date }, [...f.materiais], f.proxima_aula, f.preparar); if (!r.ok) return r.error; setCriando(false); await carregar(); return null; }} />
           </div>
         )}
         {tarefas.length === 0 && !criando ? (
@@ -206,7 +212,7 @@ export default function TarefasAba({ alunoId, proximaAula }: { alunoId: string; 
               <li key={t.id} className="rounded-2xl border border-gray-800 bg-gray-900/40 p-4 space-y-3">
                 {editando === t.id ? (
                   <FormTarefa inicial={formDaTarefa(t)} biblioteca={biblioteca} proximaAula={proximaAula} rotulo="Salvar" onCancelar={() => setEditando(null)}
-                    onSalvar={async f => { const r = await editarTarefa(alunoId, t.id, { title: f.title, description: f.description, due_date: f.due_date }, [...f.materiais], f.proxima_aula); if (!r.ok) return r.error; setEditando(null); await carregar(); return null; }} />
+                    onSalvar={async f => { const r = await editarTarefa(alunoId, t.id, { title: f.title, description: f.description, due_date: f.due_date }, [...f.materiais], f.proxima_aula, f.preparar); if (!r.ok) return r.error; setEditando(null); await carregar(); return null; }} />
                 ) : (
                   <>
                     <div className="flex items-start gap-3">
@@ -219,7 +225,7 @@ export default function TarefasAba({ alunoId, proximaAula }: { alunoId: string; 
                     <DescricaoComLinks descricao={t.description} />
                     {t.proxima_aula && (
                       <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Para a próxima aula · só você vê</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Para a próxima aula · só você vê{t.preparar ? " · 🛠 preciso preparar antes" : ""}</p>
                         <p className="text-sm text-gray-100 whitespace-pre-wrap break-words mt-0.5">{t.proxima_aula}</p>
                       </div>
                     )}

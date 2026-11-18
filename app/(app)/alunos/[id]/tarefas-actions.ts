@@ -11,7 +11,7 @@ const SEM_TABELA = 'As tarefas ainda não foram ativadas no banco.';
 const COL_TAREFA = 'id, idstudent_fk, title, description, due_date, status, completed_at, created_at';
 const COL_ENTREGA = 'id, task_fk, kind, note, url, file_name, mime_type, size_bytes, feedback, feedback_at, created_at';
 
-export type TarefaCompleta = Tarefa & { entregas: Entrega[]; materiais: { id: string; title: string }[]; estado: StatusTarefa; /** Nota privada "para a próxima aula": só o professor enxerga. */ proxima_aula?: string };
+export type TarefaCompleta = Tarefa & { entregas: Entrega[]; materiais: { id: string; title: string }[]; estado: StatusTarefa; /** Nota privada "para a próxima aula": só o professor enxerga. */ proxima_aula?: string; /** "Preciso preparar antes": vira tarefa do professor no Meu Dia. */ preparar?: boolean };
 export type TarefaParaAcao = TarefaCompleta & { aluno: string };
 
 async function materiaisDasTarefas(supabase: any, userId: string, taskIds: string[]) {
@@ -72,18 +72,18 @@ export async function fetchTarefas(idstudent: string): Promise<
     const tarefas = (t.data ?? []) as Tarefa[];
     const mats = await materiaisDasTarefas(supabase, dbUser.idusers, tarefas.map(x => x.id));
     // Nota privada do professor (tabela à parte, sem acesso do aluno). Se a tabela ainda não existir, segue sem ela.
-    const notas = new Map<string, string>();
+    const notas = new Map<string, { note: string; preparar: boolean }>();
     if (tarefas.length) {
-      const { data: ns } = await supabase.from('task_teacher_note').select('task_fk, note').eq('idusers_fk', dbUser.idusers).in('task_fk', tarefas.map(x => x.id));
-      for (const n of ns ?? []) notas.set(n.task_fk as string, n.note as string);
+      const { data: ns } = await supabase.from('task_teacher_note').select('task_fk, note, preparar').eq('idusers_fk', dbUser.idusers).in('task_fk', tarefas.map(x => x.id));
+      for (const n of ns ?? []) notas.set(n.task_fk as string, { note: n.note as string, preparar: !!n.preparar });
     }
-    const completas = montar(tarefas, (e.data ?? []) as Entrega[], mats).map(x => ({ ...x, proxima_aula: notas.get(x.id) }));
+    const completas = montar(tarefas, (e.data ?? []) as Entrega[], mats).map(x => ({ ...x, proxima_aula: notas.get(x.id)?.note, preparar: notas.get(x.id)?.preparar ?? false }));
     return { ok: true, disponivel: true, tarefas: completas, biblioteca: (b.data ?? []) as { id: string; title: string }[] };
   } catch (err: any) { console.error('Tarefas: erro inesperado:', err?.message || err); return { ok: false, error: ERRO }; }
 }
 
 /** Cria a tarefa para um ou mais alunos (uma tarefa por aluno). */
-export async function criarTarefa(idstudents: string[], bruto: Record<string, unknown>, materialIds: string[], proximaAula?: string): Promise<{ ok: true; criadas: number } | Falha> {
+export async function criarTarefa(idstudents: string[], bruto: Record<string, unknown>, materialIds: string[], proximaAula?: string, preparar?: boolean): Promise<{ ok: true; criadas: number } | Falha> {
   try {
     const v = limparTarefa(bruto); if (!v.ok) return v;
     const ids = [...new Set(idstudents)].filter(x => UUID.test(x));
@@ -108,20 +108,20 @@ export async function criarTarefa(idstudents: string[], bruto: Record<string, un
       if (mats.length) await supabase.from('task_material').insert(mats.map(m => ({ task_fk: t.id, material_fk: m, idusers_fk: dbUser.idusers })));
       const notaPrivada = String(proximaAula ?? '').trim().slice(0, 1000);
       if (notaPrivada) {
-        const { error: eNota } = await supabase.from('task_teacher_note').insert({ task_fk: t.id, idusers_fk: dbUser.idusers, note: notaPrivada });
+        const { error: eNota } = await supabase.from('task_teacher_note').insert({ task_fk: t.id, idusers_fk: dbUser.idusers, note: notaPrivada, preparar: !!preparar });
         if (eNota && !tabelaAusente(eNota)) console.error('Tarefas: erro ao gravar a nota para a próxima aula:', eNota.message);
       }
       await avisarAlunoDaTarefa(supabase, {
         teacherId: dbUser.idusers, studentId: t.idstudent_fk as string, title: 'Nova tarefa',
         message: `Seu professor passou a tarefa "${v.valor.title}".${prazoPorExtenso(v.valor.due_date)}`,
-        copiaProfessor: { tarefa: v.valor.title, descricao: String(v.valor.description ?? ''), prazo: v.valor.due_date ?? null, proximaAula: String(proximaAula ?? '').trim().slice(0, 1000) },
+        copiaProfessor: { tarefa: v.valor.title, descricao: String(v.valor.description ?? ''), prazo: v.valor.due_date ?? null, proximaAula: String(proximaAula ?? '').trim().slice(0, 1000), preparar: !!preparar },
       });
     }
     return { ok: true, criadas: criadas?.length ?? 0 };
   } catch (err: any) { console.error('Tarefas: erro inesperado:', err?.message || err); return { ok: false, error: ERRO }; }
 }
 
-export async function editarTarefa(idstudent: string, taskId: string, bruto: Record<string, unknown>, materialIds: string[], proximaAula?: string): Promise<{ ok: true } | Falha> {
+export async function editarTarefa(idstudent: string, taskId: string, bruto: Record<string, unknown>, materialIds: string[], proximaAula?: string, preparar?: boolean): Promise<{ ok: true } | Falha> {
   try {
     if (!UUID.test(taskId)) return { ok: false, error: 'Tarefa não encontrada.' };
     const v = limparTarefa(bruto); if (!v.ok) return v;
@@ -143,7 +143,7 @@ export async function editarTarefa(idstudent: string, taskId: string, bruto: Rec
     if (proximaAula !== undefined) {
       const nota = proximaAula.trim().slice(0, 1000);
       const r = nota
-        ? await supabase.from('task_teacher_note').upsert({ task_fk: taskId, idusers_fk: dbUser.idusers, note: nota }, { onConflict: 'task_fk' })
+        ? await supabase.from('task_teacher_note').upsert({ task_fk: taskId, idusers_fk: dbUser.idusers, note: nota, preparar: !!preparar }, { onConflict: 'task_fk' })
         : await supabase.from('task_teacher_note').delete().eq('task_fk', taskId).eq('idusers_fk', dbUser.idusers);
       if (r.error && !tabelaAusente(r.error)) console.error('Tarefas: erro ao gravar a nota para a próxima aula:', r.error.message);
     }

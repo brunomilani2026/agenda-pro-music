@@ -15,7 +15,7 @@ type Cliente = { from: (tabela: string) => any };
 /** Professor -> aluno. Aluno inativo não recebe nada (regra do sistema: inativo fica fora dos avisos). */
 export async function avisarAlunoDaTarefa(
   supabase: Cliente,
-  p: { teacherId: string; studentId: string; title: string; message: string; copiaProfessor?: { tarefa: string; descricao: string; prazo: string | null; proximaAula?: string } },
+  p: { teacherId: string; studentId: string; title: string; message: string; copiaProfessor?: { tarefa: string; descricao: string; prazo: string | null; proximaAula?: string; preparar?: boolean } },
 ): Promise<void> {
   try {
     const inativos = await alunosInativos([p.studentId]);
@@ -34,7 +34,7 @@ export async function avisarAlunoDaTarefa(
       const prazo = c.prazo ? `\nPrazo: ${c.prazo.slice(0, 10).split('-').reverse().join('/')}` : '\nPrazo: sem prazo definido';
       await afterResponse(() => emailTeacher(p.teacherId, {
         title: `Tarefa para ${nome}`,
-        message: `Você passou uma tarefa para ${nome}.\nTarefa: ${c.tarefa}${prazo}\n\nO que foi pedido:\n${c.descricao || '(sem descrição)'}${estudado ? `\n\nEstudado na última aula:\n${estudado}` : ''}${c.proximaAula ? `\n\nPara a próxima aula (só para o professor):\n${c.proximaAula}` : ''}`,
+        message: `Você passou uma tarefa para ${nome}.\nTarefa: ${c.tarefa}${prazo}\n\nO que foi pedido:\n${c.descricao || '(sem descrição)'}${estudado ? `\n\nEstudado na última aula:\n${estudado}` : ''}${c.proximaAula ? `\n\nPara a próxima aula (só para o professor):\n${c.proximaAula}${c.preparar ? '\nPreciso preparar antes: SIM' : ''}` : ''}`,
         buttonLabel: 'Ver tarefas do aluno', buttonPath: `/alunos/${p.studentId}`,
       }));
     }
