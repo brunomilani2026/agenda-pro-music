@@ -443,9 +443,19 @@ export default function AlunoAulasPage() {
                 <>
                   <div className="group">
                     <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wider ml-1 group-focus-within:text-amber-600 transition-colors">Data desejada</label>
-                    <input type="date" value={formData.date} min={getLocalISODate()}
+                    <select value={formData.date}
                       onChange={e => setFormData({ ...formData, date: e.target.value })}
-                      className="block w-full min-w-0 max-w-full bg-white border border-gray-300 rounded-xl p-3.5 text-gray-900 focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all hover:bg-gray-50 shadow-sm" />
+                      className="block w-full min-w-0 max-w-full bg-white border border-gray-300 rounded-xl p-3.5 text-gray-900 focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all hover:bg-gray-50 shadow-sm">
+                      <option value="">Escolha o dia</option>
+                      {/* Lista de dias (próximos 120): o seletor nativo de data do celular falhava ao tocar; a lista funciona sempre. */}
+                      {Array.from({ length: 120 }, (_, n) => {
+                        const d = nowInSaoPaulo();
+                        d.setDate(d.getDate() + n);
+                        const iso = getLocalISODate(d);
+                        const rotulo = new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+                        return <option key={iso} value={iso}>{rotulo}</option>;
+                      })}
+                    </select>
                   </div>
                   <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
                     <div className="group min-w-0">
