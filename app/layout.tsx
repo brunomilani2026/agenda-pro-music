@@ -10,10 +10,11 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Agenda Pro Music",
   description: "Sistema de agendamento de aulas de música",
+  appleWebApp: { capable: true, title: "Agenda Pro", statusBarStyle: "black" },
 };
 
 // Largura fixa do celular: sem isso o iPhone dá zoom ao tocar num campo (filtros, busca) e a tela fica ampliada e "bagunçada".
-export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1 };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1, themeColor: "#111827" };
 
 export default function RootLayout({
   children,
