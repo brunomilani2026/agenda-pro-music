@@ -520,6 +520,10 @@ async function avisarPagamentoPixImpl(paymentId: string): Promise<{ success: boo
 // Solicitações de Aula (RF03)
 // ============================================================
 
+// Aulas só começam em hora cheia ou meia hora (09:00, 09:30…): o formulário só oferece esses horários e o servidor confere.
+const horarioInteiroOuMeia = (t: string) => /^([01][0-9]|2[0-3]):(00|30)$/.test(t);
+const ERRO_HORARIO_QUEBRADO = 'Escolha um horário em ponto ou meia hora (por exemplo 09:00 ou 09:30).';
+
 export async function requestNewLesson(data: {
   requested_date: string;
   requested_starttime: string;
@@ -529,6 +533,7 @@ export async function requestNewLesson(data: {
 }): Promise<{ success: boolean; error?: string }> {
   const student = await getLinkedStudent();
   if (!student) return { success: false, error: 'Sessão inválida.' };
+  if (!horarioInteiroOuMeia(data.requested_starttime)) return { success: false, error: ERRO_HORARIO_QUEBRADO };
 
   // Rejeitar horários que já passaram (usando fuso de São Paulo, não UTC do servidor)
   const nowBrazil = nowInSaoPaulo();
@@ -640,6 +645,7 @@ export async function requestReschedule(lessonId: string, data: {
 }): Promise<{ success: boolean; error?: string }> {
   const student = await getLinkedStudent();
   if (!student) return { success: false, error: 'Sessão inválida.' };
+  if (!horarioInteiroOuMeia(data.requested_starttime)) return { success: false, error: ERRO_HORARIO_QUEBRADO };
 
   // Rejeitar horários solicitados que já passaram (usando fuso de São Paulo, não UTC do servidor)
   const nowCheck = nowInSaoPaulo();
@@ -718,6 +724,7 @@ export async function requestLessonUsingCredit(data: {
 }): Promise<{ success: boolean; error?: string }> {
   const student = await getLinkedStudent();
   if (!student) return { success: false, error: 'Sessão inválida.' };
+  if (!horarioInteiroOuMeia(data.requested_starttime)) return { success: false, error: ERRO_HORARIO_QUEBRADO };
 
   const nowBrazil = nowInSaoPaulo();
   const todayStr = getLocalISODate(nowBrazil);

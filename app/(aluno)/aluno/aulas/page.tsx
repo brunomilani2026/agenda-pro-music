@@ -450,9 +450,12 @@ export default function AlunoAulasPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="group">
                       <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wider ml-1 group-focus-within:text-amber-600 transition-colors">Início</label>
-                      <input type="time" step={1800} value={formData.startTime}
+                      <select value={formData.startTime}
                         onChange={e => setFormData({ ...formData, startTime: e.target.value, endTime: calculateEndTime(e.target.value) })}
-                        className="w-full bg-white border border-gray-300 rounded-xl p-3.5 text-gray-900 focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all hover:bg-gray-50 shadow-sm" />
+                        className="w-full bg-white border border-gray-300 rounded-xl p-3.5 text-gray-900 focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all hover:bg-gray-50 shadow-sm">
+                        <option value="">Escolha</option>
+                        {Array.from({ length: 28 }, (_, i) => `${String(Math.floor(i / 2) + 8).padStart(2, '0')}:${i % 2 ? '30' : '00'}`).map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
                     </div>
                     <div className="group">
                       <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wider ml-1">Fim (50min)</label>
