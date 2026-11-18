@@ -219,6 +219,9 @@ export default function AlunoDashboardPage() {
                 </div>
               ))
             )}
+            <a href="/aluno/aulas" className="mt-auto pt-2 text-center text-xs font-bold text-amber-500 hover:text-amber-400 underline underline-offset-2">
+              Ver todas as aulas (marcar, remarcar ou cancelar)
+            </a>
           </div>
         </div>
 
