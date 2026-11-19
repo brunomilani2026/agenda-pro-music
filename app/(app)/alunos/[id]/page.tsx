@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BookOpen, CalendarClock, Edit3, Info, ListChecks, Lock, Package, Plus, RefreshCw, Repeat, Trash2, Wallet, X } from "lucide-react";
@@ -1000,9 +1000,11 @@ export default function FichaAlunoPage() {
       {aba === "reposicoes" && (
         <Painel titulo={`Reposições e créditos (${ficha.reposicoes.length})`} acao={<Repeat className="w-4 h-4 text-amber-500" />}>
           {repoMsg && <p role="status" className="mb-3 text-sm text-green-400 font-medium">{repoMsg}</p>}
-          {ficha.reposicoes.length ? <ul className="divide-y divide-gray-800">{ficha.reposicoes.map(r => <LinhaReposicao key={r.id} r={r} onMarcar={x => { setRepoAlvo(x); setRepoData(""); setRepoInicio(""); setRepoErro(null); setRepoMsg(null); }} />)}</ul> : <p className="text-sm text-gray-500">Nenhum crédito ou reposição registrado.</p>}
-          {repoAlvo && (
-            <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+          {ficha.reposicoes.length ? <ul className="divide-y divide-gray-800">{ficha.reposicoes.map(r => (
+            <Fragment key={r.id}>
+              <LinhaReposicao r={r} onMarcar={x => { setRepoAlvo(x); setRepoData(""); setRepoInicio(""); setRepoErro(null); setRepoMsg(null); }} />
+              {repoAlvo?.id === r.id && (
+            <li className="py-3"><div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
               <p className="text-sm font-bold text-white">Marcar reposição{repoAlvo.origemData ? ` da aula de ${fmtData(repoAlvo.origemData)}` : ""} (até {fmtData(repoAlvo.validade)})</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="text-xs text-gray-400">Dia
@@ -1017,8 +1019,10 @@ export default function FichaAlunoPage() {
                 <button type="button" disabled={repoSalvando || !repoData || !repoInicio} onClick={confirmarReposicao} className="px-4 py-2 rounded-xl bg-amber-500 text-gray-900 text-xs font-black uppercase tracking-widest disabled:opacity-50">{repoSalvando ? "Marcando..." : "Confirmar e avisar o aluno"}</button>
                 <button type="button" onClick={() => setRepoAlvo(null)} className="px-4 py-2 rounded-xl border border-gray-700 text-gray-300 text-xs font-black uppercase tracking-widest">Cancelar</button>
               </div>
-            </div>
-          )}
+            </div></li>
+              )}
+            </Fragment>
+          ))}</ul> : <p className="text-sm text-gray-500">Nenhum crédito ou reposição registrado.</p>}
         </Painel>
       )}
     </div>
