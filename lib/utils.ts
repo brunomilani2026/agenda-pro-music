@@ -1,6 +1,7 @@
 // Funções utilitárias do projeto
 
 import { type ClassValue, clsx } from "clsx";
+import { avancarVencimento, proximoDiaUtil } from "@/lib/dias-uteis";
 
 /**
  * Combina classes CSS de forma condicional
@@ -158,16 +159,18 @@ export function projectNextMensalidadeDue(
   lastDue: string | null | undefined,
   planExpiration: string | null | undefined,
   monthsToAdd: number,
+  diaAncora?: number | null,
 ): string {
-  if (lastDue) return addMonthsKeepDay(lastDue, monthsToAdd);
+  // Todo vencimento cai em dia útil (sem sábado, domingo e feriado nacional); a âncora mantém o dia combinado.
+  if (lastDue) return avancarVencimento(lastDue, monthsToAdd, diaAncora);
   const today = getLocalISODate();
   if (planExpiration) {
-    let due = planExpiration;
+    let due = proximoDiaUtil(planExpiration);
     // Limite de 60 iterações — nunca trava (5 anos no plano mensal).
-    for (let i = 0; i < 60 && due < today; i++) due = addMonthsKeepDay(due, monthsToAdd);
+    for (let i = 0; i < 60 && due < today; i++) due = avancarVencimento(due, monthsToAdd, diaAncora ?? Number(planExpiration.slice(8, 10)));
     return due;
   }
-  return addMonthsKeepDay(today, monthsToAdd);
+  return avancarVencimento(today, monthsToAdd, diaAncora);
 }
 
 /**

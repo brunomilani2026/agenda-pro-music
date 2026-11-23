@@ -8,6 +8,7 @@ import { alunosInativos } from '@/lib/aluno-inativo';
 import { emailStudent, emailTeacher } from '@/lib/notify-email';
 import { afterResponse } from '@/lib/after-response';
 import { AVULSA_PRAZO_DIAS, aulaGeraCobranca, textoCobrancaAula, vencimentoAulaAvulsa } from '@/lib/cobranca-avulsa';
+import { avancarVencimento, proximoDiaUtil } from '@/lib/dias-uteis';
 import { getLocalISODate, addMonthsKeepDay, projectNextMensalidadeDue, normalizePaymentMethod, nowInSaoPaulo } from '@/lib/utils';
 
 /**
@@ -434,7 +435,7 @@ export class PaymentService {
     // do vencimento salvo, preservando o dia do mês.
     const { data: studentPlan } = await supabase
       .from('student')
-      .select('packagetype, expirationdate, totallessons, idusers_fk, status, name')
+      .select('packagetype, expirationdate, totallessons, idusers_fk, status, name, billing_day')
       .eq('idstudent', pmt.idstudent_fk)
       .single();
 
@@ -463,13 +464,14 @@ export class PaymentService {
       //
       // addMonthsKeepDay também protege o fim do mês: 31/01 + 1 mês vira 28/02,
       // e não 03/03 como o setMonth() cru fazia.
-      let nextIso = addMonthsKeepDay(current || todayIso, monthsToAdd);
+      const ancora = Number((studentPlan as any)?.billing_day) || (current ? Number(current.slice(8, 10)) : null);
+      let nextIso = avancarVencimento(current || todayIso, monthsToAdd, ancora);
 
       // Quem sumiu por vários ciclos volta para o ciclo corrente: sem isto, um
       // plano vencido há seis meses continuaria no passado mesmo depois de pago.
       // O dia do mês é preservado em todas as voltas.
       for (let i = 0; i < 60 && nextIso <= todayIso; i++) {
-        nextIso = addMonthsKeepDay(nextIso, monthsToAdd);
+        nextIso = avancarVencimento(nextIso, monthsToAdd, ancora);
       }
 
       await supabase
@@ -693,7 +695,7 @@ export class PaymentService {
 
     const { data: students, error } = await supabase
       .from('student')
-      .select('idstudent, idusers_fk, packagetype, lessonprice, paymentmethod, asaas_subscription_id, expirationdate')
+      .select('idstudent, idusers_fk, packagetype, lessonprice, paymentmethod, asaas_subscription_id, expirationdate, billing_day')
       .eq('status', 'ativo')
       .eq('is_test', false)
       .not('expirationdate', 'is', null)
@@ -736,9 +738,10 @@ export class PaymentService {
       // Alvo: primeiro ciclo do plano ainda não quitado. Ciclos já pagos
       // avançam; ciclos antigos SEM pagamento não empilham — cobra só o
       // período corrente.
-      let duedate = student.expirationdate as string;
+      const ancora = Number(student.billing_day) || Number((student.expirationdate as string).slice(8, 10));
+      let duedate = proximoDiaUtil(student.expirationdate as string);
       for (let i = 0; i < 60; i++) {
-        const next = addMonthsKeepDay(duedate, monthsToAdd);
+        const next = avancarVencimento(duedate, monthsToAdd, ancora);
         if (paidMonths.has(duedate.slice(0, 7))) { duedate = next; continue; }
         if (next <= today) { duedate = next; continue; }
         break;
@@ -1378,7 +1381,7 @@ export class PaymentService {
     if (ja && ja.length > 0) return false;
 
     const hoje = getLocalISODate(nowInSaoPaulo());
-    const vencimento = vencimentoAulaAvulsa(lesson.date, hoje);
+    const vencimento = proximoDiaUtil(vencimentoAulaAvulsa(lesson.date, hoje));
     const criada = await this.createPayment({
       idstudent_fk: student.idstudent,
       idusers_fk: student.idusers_fk,
@@ -1447,7 +1450,7 @@ export class PaymentService {
     if (amount <= 0) return null;
 
     // Calcular data de vencimento (vencimento original ou hoje + 5 dias)
-    let dueDate = student.expirationdate || getLocalISODate(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000));
+    let dueDate = proximoDiaUtil(student.expirationdate || getLocalISODate(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)));
 
     let asaasPaymentId = '';
     let asaasInvoiceUrl = '';
@@ -1535,7 +1538,7 @@ export class PaymentService {
     const supabase = db ?? await createClient();
     const { data: student } = await supabase
       .from('student')
-      .select('idstudent, idusers_fk, packagetype, lessonprice, paymentmethod, asaas_subscription_id')
+      .select('idstudent, idusers_fk, packagetype, lessonprice, paymentmethod, asaas_subscription_id, billing_day, expirationdate')
       .eq('idstudent', paidPayment.idstudent_fk)
       .single();
     if (!student) return null;
@@ -1552,7 +1555,7 @@ export class PaymentService {
 
     // Próximo vencimento: avança o período mantendo o mesmo dia do vencimento atual.
     const baseDue = paidPayment.duedate || getLocalISODate(new Date());
-    const duedate = addMonthsKeepDay(baseDue, monthsToAdd);
+    const duedate = avancarVencimento(baseDue, monthsToAdd, Number(student.billing_day) || null);
     const [ry, rm] = duedate.split('-').map(Number);
     const monthLabel = new Date(ry, rm - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
@@ -1629,7 +1632,7 @@ export class PaymentService {
     const supabase = await createClient();
     const { data: student } = await supabase
       .from('student')
-      .select('idstudent, idusers_fk, name, cpf, email, phone, packagetype, lessonprice, paymentmethod, asaas_customer_id, asaas_subscription_id, expirationdate')
+      .select('idstudent, idusers_fk, name, cpf, email, phone, packagetype, lessonprice, paymentmethod, asaas_customer_id, asaas_subscription_id, expirationdate, billing_day')
       .eq('idstudent', idstudent_fk)
       .single();
     if (!student) return { success: false, error: 'Aluno não encontrado.' };
@@ -1669,7 +1672,7 @@ export class PaymentService {
 
     // Sem histórico, a primeira mensalidade vence na data do plano (expirationdate
     // da ficha do aluno); com histórico, avança um período mantendo o dia.
-    const duedate = projectNextMensalidadeDue(lastPayment?.duedate, student.expirationdate, monthsToAdd);
+    const duedate = projectNextMensalidadeDue(lastPayment?.duedate, student.expirationdate, monthsToAdd, Number((student as any).billing_day) || null);
     const [ry, rm] = duedate.split('-').map(Number);
     const monthLabel = new Date(ry, rm - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 

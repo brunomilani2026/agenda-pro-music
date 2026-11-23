@@ -25,6 +25,18 @@ import { VALIDADE_REPOSICAO_DIAS } from '@/lib/regra-reposicao';
 import { mapDbLessonToUI } from '@/lib/lesson-mapper';
 import { buildAwaitingStudentRescheduleNote, isAwaitingStudentReschedule } from '@/lib/lesson-reschedule-release';
 import type { InitialAppData } from '../initial-data';
+import { proximoDiaUtil } from '@/lib/dias-uteis';
+
+// Vencimento de plano recorrente sempre em dia útil; o dia digitado fica guardado (billing_day) para os meses seguintes não escorregarem.
+const recorrente = (pkg?: string | null) => ['mensal', 'trimestral', 'semestral'].includes((pkg || '').toLowerCase());
+function expirationUtil(data?: string | null, pkg?: string | null): string | null {
+  if (!data) return null;
+  return recorrente(pkg) ? proximoDiaUtil(data) : data;
+}
+function billingDayFields(data?: string | null, pkg?: string | null): { billing_day: number | null } {
+  return { billing_day: data && recorrente(pkg) ? Number(data.slice(8, 10)) : null };
+}
+
 
 function fmtDate(isoDate: string) {
   const [y, m, d] = isoDate.split('-');
@@ -140,7 +152,8 @@ export async function createAgendaStudent(studentData: any): Promise<{ success: 
       instrument: studentData.instrument || 'Outros',
       lessonprice: studentData.lessonPrice || studentData.lessonprice || 0,
       packagetype: studentData.packagetype || 'avulsa',
-      expirationdate: studentData.expirationdate || null,
+      expirationdate: expirationUtil(studentData.expirationdate, studentData.packagetype),
+      ...billingDayFields(studentData.expirationdate, studentData.packagetype),
       paymentmethod: studentData.paymentMethod || 'Pix',
       status: 'inativo', // Começa inativo até confirmar
       idusers_fk: dbUser.idusers,
@@ -258,7 +271,7 @@ export async function updateAgendaStudent(
       instrument: studentData.instrument || 'Outros',
       cpf: studentData.cpf ? unmask(studentData.cpf) : null,
       packagetype: studentData.packagetype || 'avulsa',
-      ...(touchedExpiration ? { expirationdate: studentData.expirationdate || null } : {}),
+      ...(touchedExpiration ? { expirationdate: expirationUtil(studentData.expirationdate, studentData.packagetype), ...billingDayFields(studentData.expirationdate, studentData.packagetype) } : {}),
       lessonprice: studentData.lessonPrice || 0,
       paymentmethod: studentData.paymentMethod || 'Pix',
       status,
@@ -2414,7 +2427,7 @@ export async function createGradeInvoices(
     for (let i = 0; i < monthsToCreate; i++) {
       const ref = new Date(now.getFullYear(), now.getMonth() + i, 1);
       const lastDay = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
-      const duedate = getLocalISODate(lastDay);
+      const duedate = proximoDiaUtil(getLocalISODate(lastDay));
       const monthLabel = ref.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
       const alreadyExists = existingPayments.some(p =>

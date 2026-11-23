@@ -1006,7 +1006,7 @@ export async function fetchAlunoNextInvoiceInfo() {
     .at(-1) || null;
   // Sem histórico, a primeira mensalidade vence na data do plano (expirationdate
   // da ficha do aluno); com histórico, avança um período mantendo o dia.
-  const duedate = projectNextMensalidadeDue(lastDue, student.expirationdate, monthsToAdd);
+  const duedate = projectNextMensalidadeDue(lastDue, student.expirationdate, monthsToAdd, Number((student as any).billing_day) || null);
   const [ry, rm] = duedate.split('-').map(Number);
   const monthLabel = new Date(ry, rm - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
