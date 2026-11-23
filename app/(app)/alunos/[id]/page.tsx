@@ -1008,10 +1008,10 @@ export default function FichaAlunoPage() {
               <p className="text-sm font-bold text-white">Marcar reposição{repoAlvo.origemData ? ` da aula de ${fmtData(repoAlvo.origemData)}` : ""} (até {fmtData(repoAlvo.validade)})</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="text-xs text-gray-400">Dia
-                  <input type="date" value={repoData} min={new Date().toISOString().slice(0, 10)} max={repoAlvo.validade} onChange={e => setRepoData(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
+                  <input type="date" value={repoData} min={new Date().toISOString().slice(0, 10)} max={repoAlvo.validade} onChange={e => setRepoData(e.target.value)} className="mt-1 w-full [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
                 </label>
                 <label className="text-xs text-gray-400">Início
-                  <input type="time" value={repoInicio} onChange={e => setRepoInicio(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
+                  <input type="time" value={repoInicio} onChange={e => setRepoInicio(e.target.value)} className="mt-1 w-full [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
                 </label>
               </div>
               {repoErro && <p role="alert" className="text-sm text-red-400 font-medium">{repoErro}</p>}
