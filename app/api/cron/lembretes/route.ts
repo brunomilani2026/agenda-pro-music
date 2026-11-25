@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLocalISODate } from '@/lib/utils';
 import { createAdminClient } from '@/lib/supabase/server';
+import { PaymentService } from '@/services/payment.service';
+import { aulaGeraCobranca, vencimentoAulaAvulsa } from '@/lib/cobranca-avulsa';
+import { proximoDiaUtil } from '@/lib/dias-uteis';
 import { emailStudent, lessonObsForEmail, lessonMeetLineForEmail, lessonEmailCta, getTeacherMeetLinks } from '@/lib/notify-email';
 
 // Sem cache: precisa ler o estado atual das aulas a cada execução.
@@ -78,7 +81,7 @@ export async function GET(request: NextRequest) {
       // pegar o id (notificação/e-mail). Sem conta de aluno → só marca lido.
       const { data: student } = await supabase
         .from('student')
-        .select('idstudent, status')
+        .select('idstudent, status, packagetype, lessonprice, paymentmethod, idusers_fk')
         .eq('idusers_fk', lesson.idusers_fk)
         .ilike('name', lesson.studentname)
         .limit(1)
@@ -94,13 +97,28 @@ export async function GET(request: NextRequest) {
       const whenLabel = lesson.date === today ? 'hoje' : 'amanhã';
       const msg = `Sua aula de ${lesson.instrument || 'música'}${lesson.teachername ? ` com ${lesson.teachername}` : ''} é ${whenLabel}, ${fmtDate(lesson.date)} às ${lesson.starttime}.`;
 
+      // Aluno avulso: avisa o valor e o prazo (3 dias após a aula, em dia útil). No dia da aula a fatura com Pix já existe.
+      let msgFinal = msg;
+      const valor = Number(student.lessonprice) || 0;
+      if (student.packagetype === 'avulsa' && valor > 0 && aulaGeraCobranca(lesson.date)) {
+        const venc = proximoDiaUtil(vencimentoAulaAvulsa(lesson.date, today));
+        const vencBr = fmtDate(venc).slice(0, 5);
+        const valorBr = `R$ ${valor.toFixed(2).replace('.', ',')}`;
+        if (lesson.date === today) {
+          await PaymentService.cobrarAulaAvulsa(supabase, student as any, lesson as any, { silencioso: true });
+          msgFinal += ` Hoje é a sua aula! O valor é ${valorBr} e você já pode pagar pelo Pix na área Financeiro, até 3 dias depois da aula (dia ${vencBr}).`;
+        } else {
+          msgFinal += ` O valor da aula é ${valorBr}; a fatura com o Pix fica disponível na área Financeiro no dia da aula, com prazo de 3 dias depois dela (dia ${vencBr}).`;
+        }
+      }
+
       const { error: notifErr } = await supabase.from('notification').insert([{
         idstudent_fk: student.idstudent,
         idusers_fk: lesson.idusers_fk,
         recipient: 'student',
         type: 'lembrete',
         title: 'Lembrete de aula',
-        message: msg,
+        message: msgFinal,
         read: false,
       }]);
       if (notifErr) {
@@ -112,7 +130,7 @@ export async function GET(request: NextRequest) {
       const meetLink = meetLinks.get(lesson.idusers_fk);
       const emailResult = await emailStudent(student.idstudent, {
         title: `Lembrete: sua aula é ${whenLabel}`,
-        message: msg + lessonMeetLineForEmail(meetLink) + lessonObsForEmail(lesson.obs),
+        message: msgFinal + lessonMeetLineForEmail(meetLink) + lessonObsForEmail(lesson.obs),
         ...lessonEmailCta(meetLink),
       });
       if (emailResult.ok) emailed++;

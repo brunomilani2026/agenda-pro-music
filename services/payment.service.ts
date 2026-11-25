@@ -1374,6 +1374,8 @@ export class PaymentService {
     supabase: any,
     student: { idstudent: string; idusers_fk: string | null; lessonprice: number | null; paymentmethod: string | null },
     lesson: { idlesson: string; date: string; instrument?: string | null },
+    // silencioso: fatura criada ANTES da aula (no dia dela). O aviso vai no lembrete de aula, não numa "cobrança" de aula que ainda não houve.
+    opts: { silencioso?: boolean } = {},
   ): Promise<boolean> {
     const valor = Number(student.lessonprice) || 0;
     if (valor <= 0 || !aulaGeraCobranca(lesson.date)) return false;
@@ -1395,6 +1397,7 @@ export class PaymentService {
       interest: 0,
     } as any, supabase);
     if (!criada) return false;
+    if (opts.silencioso) return true;
 
     const { title, message } = textoCobrancaAula({ instrumento: lesson.instrument, dataAula: lesson.date, valor, vencimento });
     const { error: notifErr } = await supabase.from('notification').insert([{
@@ -1409,6 +1412,19 @@ export class PaymentService {
    * Rede diária: toda aula realizada de aluno avulso (a partir de AVULSA_COBRANCA_DESDE) que ainda não tem fatura
    * ganha uma. Cobre as aulas marcadas como realizadas automaticamente depois que o horário passa.
    */
+  static async cancelarFaturasAvulsasDeAulasCanceladas(supabase: any): Promise<void> {
+    const { data: abertas } = await supabase.from('payment')
+      .select('id, notes, lesson_fk').eq('status', 'pendente').not('lesson_fk', 'is', null).like('notes', 'Aula avulsa de%');
+    const ids = (abertas || []).map((p: any) => p.lesson_fk);
+    if (ids.length === 0) return;
+    const { data: aulas } = await supabase.from('lesson').select('idlesson').in('idlesson', ids).in('lessonstatus', ['cancelada', 'remarcada']);
+    const mortas = new Set((aulas || []).map((l: any) => l.idlesson));
+    for (const p of abertas || []) {
+      if (!mortas.has(p.lesson_fk)) continue;
+      await supabase.from('payment').update({ status: 'cancelado', notes: `${p.notes} | Cancelada: a aula foi cancelada/remarcada` }).eq('id', p.id).eq('status', 'pendente');
+    }
+  }
+
   static async generateAvulsoLessonCharges(): Promise<number> {
     const supabase = createAdminClient();
     const hoje = getLocalISODate(nowInSaoPaulo());
@@ -1418,7 +1434,16 @@ export class PaymentService {
       .eq('packagetype', 'avulsa').in('status', ['ativo', 'bloqueado']).eq('is_test', false).gt('lessonprice', 0);
     if (error) { console.error('generateAvulsoLessonCharges: erro ao buscar alunos:', error.message); return 0; }
     let criadas = 0;
+    // Fatura criada antes da aula cuja aula foi cancelada/remarcada deixa de valer.
+    await this.cancelarFaturasAvulsasDeAulasCanceladas(supabase);
     for (const a of alunos || []) {
+      // Aula de HOJE ainda agendada: a fatura (com Pix) já nasce no dia da aula, em silêncio; o lembrete de aula avisa o aluno.
+      const { data: deHoje } = await supabase
+        .from('lesson').select('idlesson, date, instrument')
+        .eq('student_fk', a.idstudent).eq('lessonstatus', 'agendada').eq('date', hoje);
+      for (const l of deHoje || []) {
+        if (await this.cobrarAulaAvulsa(supabase, a as any, l as any, { silencioso: true })) criadas++;
+      }
       const { data: aulas } = await supabase
         .from('lesson').select('idlesson, date, instrument')
         .eq('student_fk', a.idstudent).eq('lessonstatus', 'realizada').gte('date', '2026-10-21').lte('date', hoje).order('date');
