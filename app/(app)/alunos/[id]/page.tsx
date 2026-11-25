@@ -413,10 +413,10 @@ export default function FichaAlunoPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="text-xs text-gray-400">Novo dia
-                <input type="date" value={acaoData} min={new Date().toISOString().slice(0, 10)} onChange={e => setAcaoData(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
+                <input type="date" value={acaoData} min={new Date().toISOString().slice(0, 10)} onChange={e => setAcaoData(e.target.value)} className="mt-1 w-full [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
               </label>
               <label className="text-xs text-gray-400">Início
-                <input type="time" value={acaoInicio} onChange={e => setAcaoInicio(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
+                <input type="time" value={acaoInicio} onChange={e => setAcaoInicio(e.target.value)} className="mt-1 w-full [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
               </label>
             </div>
           )}
@@ -979,7 +979,7 @@ export default function FichaAlunoPage() {
                   </select>
                 </label>
                 <label className="text-xs text-gray-400">Data do recebimento
-                  <input type="date" value={baixaData} onChange={e => setBaixaData(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
+                  <input type="date" value={baixaData} onChange={e => setBaixaData(e.target.value)} className="mt-1 w-full [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer rounded-xl bg-gray-900 border border-gray-700 px-3 py-2 text-sm text-white" />
                 </label>
               </div>
               <label className="block text-xs text-gray-400">Observação (opcional)

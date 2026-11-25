@@ -117,7 +117,7 @@ function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCanc
         <label className={opcao}>
           <input type="radio" name="prazo" className="accent-amber-500" checked={f.modo === "data"} onChange={() => setF({ ...f, modo: "data" })} />
           <span>Escolher outra data</span>
-          {f.modo === "data" && <input type="date" className="bg-gray-800/60 border border-gray-700 focus:border-amber-500 focus:outline-none rounded-xl px-3 py-1.5 text-sm text-white" value={f.due_date} onChange={e => setF({ ...f, due_date: e.target.value })} aria-label="Data do prazo" />}
+          {f.modo === "data" && <input type="date" className="[&::-webkit-calendar-picker-indicator]:invert bg-gray-800/60 border border-gray-700 focus:border-amber-500 focus:outline-none rounded-xl px-3 py-1.5 text-sm text-white" value={f.due_date} onChange={e => setF({ ...f, due_date: e.target.value })} aria-label="Data do prazo" />}
         </label>
         <label className={opcao}>
           <input type="radio" name="prazo" className="accent-amber-500" checked={f.modo === "nenhum"} onChange={() => setF({ ...f, modo: "nenhum" })} />
