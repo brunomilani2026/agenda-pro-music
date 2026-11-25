@@ -96,7 +96,7 @@ function FormTarefa({ inicial, biblioteca, proximaAula, rotulo, onSalvar, onCanc
       <div className="md:col-span-2">
         <GravadorAudio onAudio={a => { setAudio(a); setAudioId(null); }} onTranscricao={t => setF(x => ({ ...x, description: anexarTexto(x.description, t) }))} />
       </div>
-      {rotulo.toLowerCase().includes("criar") && (
+      {(
         <label className="md:col-span-2 block">
           <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Para a próxima aula (só para mim, o aluno não vê)</span>
           <textarea className={`${campo} mt-1`} rows={2} placeholder="Ex.: Na próxima aula, estudar Trem das Onze" value={f.proxima_aula} maxLength={1000} onChange={e => setF({ ...f, proxima_aula: e.target.value })} aria-label="Para a próxima aula (só para mim)" />
